@@ -1,0 +1,9 @@
+target/
+target-nightly/
+third_party/
+__pycache__/
+*.pyc
+.idea/
+.DS_Store
+.venv/
+Cargo.lock
