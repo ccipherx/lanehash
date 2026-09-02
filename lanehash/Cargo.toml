@@ -1,0 +1,20 @@
+[package]
+name = "lanehash"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.89"
+publish = true
+license = "MIT OR Apache-2.0"
+description = "The fastest non-cryptographic, highest quality hash algorithm"
+keywords = ["hash", "hasher", "no-std", "lanehash"]
+categories = ["algorithms", "no-std"]
+exclude = ["Cargo.lock", "fuzz"]
+
+[features]
+default = ["std"]
+std = []
+force-fallback = []
+
+
+[dev-dependencies]
+libc = "0.2"
