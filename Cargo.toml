@@ -1,5 +1,5 @@
 [workspace]
-members = ["lanehash"]
+members = ["lanehash", "lanehash-ffi"]
 resolver = "2"
 
 [profile.release]
