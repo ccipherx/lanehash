@@ -1,0 +1,19 @@
+[package]
+name = "bench"
+version = "0.1.0"
+edition = "2021"
+publish = false
+build = "build.rs"
+
+[features]
+hybrid = ["gxhash/hybrid"]   # needs nightly (gxhash uses #![feature(stdarch_x86_avx512)])
+
+[dependencies]
+libc = "0.2"
+lanehash = { path = "../lanehash" }
+gxhash = "3.5.0"
+rapidhash = "4.5.1"
+xxhash-rust = { version = "0.8.18", features = ["xxh3", "xxh64"] }
+foldhash = "0.2.0"
+ahash = "0.8.12"
+hashbrown = "0.15"
