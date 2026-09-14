@@ -1,0 +1,10 @@
+# mode=latency rounds=5 dram=false align=Some(16) counter=RDPRU-APERF pinned=taskset
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples
+gxhash-hybrid,4,0.117,0.000,0.57,34.24,0.05,5
+gxhash-hybrid,8,0.227,0.000,1.11,35.27,0.02,5
+gxhash-hybrid,16,0.453,0.000,2.22,35.28,0.03,5
+gxhash-hybrid,32,0.712,0.000,3.48,44.93,0.01,5
+gxhash-hybrid,64,1.186,0.000,5.80,53.95,0.01,5
+gxhash-hybrid,128,1.959,0.000,9.57,65.34,0.01,5
+gxhash-hybrid,256,3.439,0.001,16.81,74.43,0.02,5
+gxhash-hybrid,1024,8.937,0.003,43.56,114.58,0.04,5

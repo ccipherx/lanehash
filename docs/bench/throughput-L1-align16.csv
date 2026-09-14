@@ -1,0 +1,44 @@
+# mode=throughput rounds=5 dram=false align=Some(16) counter=RDPRU-APERF pinned=taskset
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples
+gxhash,256,11.586,0.017,55.01,22.10,0.03,5
+lanehash,256,9.750,0.048,46.01,26.26,0.13,5
+lanehash-aesni,256,8.723,0.105,41.55,29.35,0.35,5
+lanehash-vaes256,256,10.915,0.016,51.49,23.45,0.04,5
+rapidhash-v3,256,4.055,0.007,19.31,63.13,0.10,5
+xxh3,256,2.512,0.010,12.19,101.93,0.41,5
+# mode=throughput rounds=5 dram=false align=Some(16) counter=RDPRU-APERF pinned=taskset
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples
+gxhash-hybrid,256,11.932,0.009,57.17,21.45,0.02,5
+# mode=throughput rounds=5 dram=false align=Some(16) counter=RDPRU-APERF pinned=taskset
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples
+gxhash,1024,16.709,0.057,80.27,61.28,0.21,5
+lanehash,1024,16.805,0.027,80.62,60.94,0.10,5
+lanehash-aesni,1024,12.145,0.027,58.53,84.31,0.19,5
+lanehash-vaes256,1024,16.878,0.055,80.72,60.67,0.20,5
+rapidhash-v3,1024,6.463,0.006,31.02,158.43,0.16,5
+xxh3,1024,5.441,0.004,26.28,188.22,0.15,5
+# mode=throughput rounds=5 dram=false align=Some(16) counter=RDPRU-APERF pinned=taskset
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples
+gxhash-hybrid,1024,20.719,0.011,99.56,49.42,0.03,5
+# mode=throughput rounds=5 dram=false align=Some(16) counter=RDPRU-APERF pinned=taskset
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples
+gxhash,4096,19.668,0.015,94.48,208.26,0.16,5
+lanehash,4096,23.917,0.014,115.48,171.26,0.10,5
+lanehash-aesni,4096,17.617,0.025,85.10,232.50,0.33,5
+lanehash-vaes256,4096,24.001,0.056,115.83,170.66,0.40,5
+rapidhash-v3,4096,7.855,0.002,37.75,521.44,0.14,5
+xxh3,4096,12.061,0.012,58.38,339.62,0.34,5
+# mode=throughput rounds=5 dram=false align=Some(16) counter=RDPRU-APERF pinned=taskset
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples
+gxhash-hybrid,4096,25.146,0.022,121.40,162.89,0.14,5
+# mode=throughput rounds=5 dram=false align=Some(16) counter=RDPRU-APERF pinned=taskset
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples
+gxhash,16384,20.681,0.015,100.04,792.21,0.58,5
+lanehash,16384,33.120,0.046,159.61,494.69,0.69,5
+lanehash-aesni,16384,21.244,0.010,102.58,771.21,0.38,5
+lanehash-vaes256,16384,30.078,0.015,145.13,544.72,0.27,5
+rapidhash-v3,16384,8.251,0.006,39.74,1985.82,1.48,5
+xxh3,16384,15.217,0.012,73.53,1076.71,0.86,5
+# mode=throughput rounds=5 dram=false align=Some(16) counter=RDPRU-APERF pinned=taskset
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples
+gxhash-hybrid,16384,25.158,0.022,121.61,651.23,0.58,5

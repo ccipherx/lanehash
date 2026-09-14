@@ -1,0 +1,11 @@
+# mode=throughput rounds=5 dram=false arena=false thp=false align=Some(16) nbuf=None counter=RDPRU-APERF core=3 commit=2489dfea1c clock_check=APERF 4.812 GHz, APERF/MPERF 1.269 (boost active, governor not settable)
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples,residency,footprint_bytes,eff_GHz
+lanehash,4096,25.134,0.005,124.34,162.97,0.03,5,L2,274432,4.947
+lanehash,65536,29.273,0.015,144.64,2238.81,1.17,5,L2,525824,4.941
+lanehash,1048576,21.972,0.043,108.80,47723.95,94.02,5,L3,4195072,4.952
+lanehash-stream,4096,11.364,0.003,56.42,360.45,0.10,5,L2,274432,4.965
+lanehash-stream,65536,25.205,0.004,125.07,2600.14,0.41,5,L2,525824,4.962
+lanehash-stream,1048576,21.701,0.014,107.19,48318.98,31.80,5,L3,4195072,4.939
+lanehash-stream4k,4096,11.561,0.004,57.38,354.28,0.13,5,L2,274432,4.963
+lanehash-stream4k,65536,20.644,0.006,101.80,3174.61,0.86,5,L2,525824,4.931
+lanehash-stream4k,1048576,19.541,0.009,96.02,53660.63,23.80,5,L3,4195072,4.914

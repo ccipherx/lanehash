@@ -1,0 +1,20 @@
+# maps: cycles per operation (APERF, core 3), 104334 words, 1000000 u64, 200000 structs
+# hasher,words_insert,words_lookup,u64_insert,u64_lookup,struct_insert,struct_lookup
+lanehash,71.0,53.8,156.4,51.2,114.6,38.6
+gxhash,56.6,37.7,123.3,45.4,150.2,36.1
+rapidhash-fast,43.1,33.9,136.7,44.8,105.4,29.7
+rapidhash-quality,48.1,40.1,140.5,50.2,116.8,37.1
+foldhash-fast,41.2,34.2,128.7,47.6,104.6,30.4
+ahash,53.3,39.4,131.7,44.8,118.7,30.4
+xxh3,149.7,163.9,229.9,131.4,204.0,183.4
+std-siphash,95.3,91.8,237.5,185.3,233.9,235.5
+# dedup: cycles per 4 KiB page (hash128 + HashSet<u128> insert), 20000 pages
+lanehash,896
+gxhash,788
+xxh3-128,524
+rapidhash-v3(64x2),1057
+# checksum: 64 MiB in 1 MiB chunks: GB/s (wall) and B/cycle
+lanehash,32.9,6.5
+gxhash,43.1,8.4
+xxh3,50.6,10.3
+rapidhash-v3,39.9,8.0

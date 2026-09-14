@@ -1,0 +1,343 @@
+# per-call executed instructions (count = delta/2), lanehash 4096 B, commit 2489dfea1c
+
+<_RNCNvCsb0frSIv3UDu_6icount5trace0B3_>:
+       1  5bdac006b610  mov          rax,QWORD PTR [rdi]
+       1  5bdac006b613  mov          rdx,QWORD PTR [rdi+0x8]
+       1  5bdac006b617  mov          rcx,rsi
+       1  5bdac006b61a  mov          rsi,QWORD PTR [rdi+0x10]
+       1  5bdac006b61e  mov          r8,QWORD PTR [rax]
+       1  5bdac006b621  mov          rax,QWORD PTR [rdx]
+       1  5bdac006b624  mov          rdx,QWORD PTR [rdi+0x18]
+       1  5bdac006b628  mov          rdi,rax
+       1  5bdac006b62b  jmp          r8
+
+<_RNvCsb0frSIv3UDu_6icount11call_single>:
+       1  5bdac006c7c0  test         rdx,rdx
+       1  5bdac006c7c3  je           207d4 <_RNvCsb0frSIv3UDu_6icount11call_single+0x14>
+       1  5bdac006c7c5  mov          rax,rdi
+       1  5bdac006c7c8  mov          rdi,QWORD PTR [rsi]
+       1  5bdac006c7cb  mov          rsi,QWORD PTR [rsi+0x8]
+       1  5bdac006c7cf  mov          rdx,rcx
+       1  5bdac006c7d2  jmp          rax
+
+<_RNvCsb0frSIv3UDu_6icount8trace_fn>:
+      -1  5bdac0076508  cmp          QWORD PTR [rsp+0x8],0x0
+      -1  5bdac007650e  je           2a529 <_RNvCsb0frSIv3UDu_6icount8trace_fn+0x5b9>
+      -1  5bdac0076510  xor          r12d,r12d
+      -1  5bdac0076513  mov          rdi,r15
+      -1  5bdac0076516  mov          rsi,r12
+      -1  5bdac0076519  call         r14
+      -1  5bdac007651c  inc          r12
+      -1  5bdac007651f  xor          rbx,rax
+      -1  5bdac0076522  cmp          r12,QWORD PTR [rsp+0x8]
+      -1  5bdac0076527  jb           2a513 <_RNvCsb0frSIv3UDu_6icount8trace_fn+0x5a3>
+      -1  5bdac0076529  mov          edi,0x13
+      -1  5bdac007652e  call         QWORD PTR [rip+0x630e4]        # 8d618 <raise@GLIBC_2.2.5>
+       0  5bdac0076534  cmp          QWORD PTR [rsp+0x10],0x0
+       0  5bdac007653a  je           2a555 <_RNvCsb0frSIv3UDu_6icount8trace_fn+0x5e5>
+       0  5bdac007653c  xor          r12d,r12d
+       1  5bdac007653f  mov          rdi,r15
+       1  5bdac0076542  mov          rsi,r12
+       1  5bdac0076545  call         r14
+       1  5bdac0076548  inc          r12
+       1  5bdac007654b  xor          rbx,rax
+       1  5bdac007654e  cmp          r12,QWORD PTR [rsp+0x10]
+       1  5bdac0076553  jb           2a53f <_RNvCsb0frSIv3UDu_6icount8trace_fn+0x5cf>
+       0  5bdac0076555  mov          edi,0x13
+       0  5bdac007655a  call         QWORD PTR [rip+0x630b8]        # 8d618 <raise@GLIBC_2.2.5>
+
+<_RNvCs5ULIPHMUnbY_5bench10h_lanehash>:
+       1  5bdac00790d0  cmp          rsi,0x40
+       1  5bdac00790d4  jbe          2d0e8 <_RNvCs5ULIPHMUnbY_5bench10h_lanehash+0x18>
+       1  5bdac00790d6  mov          rax,QWORD PTR [rip+0x621cb]        # 8f2a8 <_RNvNtCs5hqDXKMfHFN_8lanehash8dispatch5CACHE.0>
+       1  5bdac00790dd  test         rax,rax
+       1  5bdac00790e0  je           2d101 <_RNvCs5ULIPHMUnbY_5bench10h_lanehash+0x31>
+       1  5bdac00790e2  push         rax
+       1  5bdac00790e3  call         QWORD PTR [rax+0x10]
+       1  5bdac00790e6  pop          rcx
+       1  5bdac00790e7  ret          
+
+<_RNvNtCs5hqDXKMfHFN_8lanehash3x8614hash128_vaesvl>:
+       1  5bdac00866e0  cmp          rsi,0x101
+       1  5bdac00866e7  jae          3a743 <_RNvNtCs5hqDXKMfHFN_8lanehash3x8614hash128_vaesvl+0x63>
+       1  5bdac0086743  cmp          rsi,0x401
+       1  5bdac008674a  jae          3a8f3 <_RNvNtCs5hqDXKMfHFN_8lanehash3x8614hash128_vaesvl+0x213>
+       1  5bdac00868f3  vmovq        xmm0,rdx
+       1  5bdac00868f8  cmp          rsi,0x7ffff
+       1  5bdac00868ff  jbe          3aa69 <_RNvNtCs5hqDXKMfHFN_8lanehash3x8614hash128_vaesvl+0x389>
+       1  5bdac0086a69  vmovdqu      ymm15,YMMWORD PTR [rdi]
+       1  5bdac0086a6d  vmovdqu      ymm14,YMMWORD PTR [rdi+0x20]
+       1  5bdac0086a72  vmovdqu      ymm13,YMMWORD PTR [rdi+0x40]
+       1  5bdac0086a77  vmovdqu      ymm12,YMMWORD PTR [rdi+0x60]
+       1  5bdac0086a7c  vmovdqu      ymm11,YMMWORD PTR [rdi+0x80]
+       1  5bdac0086a84  vmovdqu      ymm10,YMMWORD PTR [rdi+0xa0]
+       1  5bdac0086a8c  vmovdqu      ymm9,YMMWORD PTR [rdi+0xc0]
+       1  5bdac0086a94  vmovdqu      ymm2,YMMWORD PTR [rdi+0xe0]
+       1  5bdac0086a9c  vmovdqa      ymm8,YMMWORD PTR [rip+0xfffffffffffcae7c]        # 5920 <__abi_tag+0x5624>
+       1  5bdac0086aa4  vmovdqa      ymm7,YMMWORD PTR [rip+0xfffffffffffcaf14]        # 59c0 <__abi_tag+0x56c4>
+       1  5bdac0086aac  vmovdqa      ymm6,YMMWORD PTR [rip+0xfffffffffffcaf8c]        # 5a40 <__abi_tag+0x5744>
+       1  5bdac0086ab4  vmovdqa      ymm5,YMMWORD PTR [rip+0xfffffffffffcafe4]        # 5aa0 <__abi_tag+0x57a4>
+       1  5bdac0086abc  vmovdqa      ymm4,YMMWORD PTR [rip+0xfffffffffffcaf1c]        # 59e0 <__abi_tag+0x56e4>
+       1  5bdac0086ac4  vmovdqa      ymm3,YMMWORD PTR [rip+0xfffffffffffcaeb4]        # 5980 <__abi_tag+0x5684>
+       1  5bdac0086acc  vmovdqa      ymm1,YMMWORD PTR [rip+0xfffffffffffcafac]        # 5a80 <__abi_tag+0x5784>
+       1  5bdac0086ad4  vpbroadcastq ymm0,xmm0
+       1  5bdac0086ad9  lea          rax,[rsi+0xf]
+       1  5bdac0086add  mov          rcx,rax
+       1  5bdac0086ae0  shr          rcx,0x4
+       1  5bdac0086ae4  add          rcx,0xfffffffffffffff0
+       1  5bdac0086ae8  shr          rcx,0x4
+       1  5bdac0086aec  lea          r9,[rcx-0x1]
+       1  5bdac0086af0  vpternlogq   ymm8,ymm0,ymm15,0x96
+       1  5bdac0086af7  vpternlogq   ymm7,ymm0,ymm14,0x96
+       1  5bdac0086afe  vpternlogq   ymm6,ymm0,ymm13,0x96
+       1  5bdac0086b05  vpternlogq   ymm5,ymm0,ymm12,0x96
+       1  5bdac0086b0c  vpternlogq   ymm4,ymm0,ymm11,0x96
+       1  5bdac0086b13  vpternlogq   ymm3,ymm0,ymm10,0x96
+       1  5bdac0086b1a  vpternlogq   ymm1,ymm0,ymm9,0x96
+       1  5bdac0086b21  vpternlogq   ymm0,ymm2,YMMWORD PTR [rip+0xfffffffffffcadd4],0x96        # 5900 <__abi_tag+0x5604>
+       1  5bdac0086b2c  cmp          rsi,0xffff
+       1  5bdac0086b33  jbe          3ad52 <_RNvNtCs5hqDXKMfHFN_8lanehash3x8614hash128_vaesvl+0x672>
+       1  5bdac0086d52  mov          r8d,r9d
+       1  5bdac0086d55  lea          rdx,[rdi+0x100]
+       1  5bdac0086d5c  lea          r10,[rcx-0x2]
+       1  5bdac0086d60  and          r8d,0x3
+       1  5bdac0086d64  cmp          r10,0x3
+       1  5bdac0086d68  jb           3afe4 <_RNvNtCs5hqDXKMfHFN_8lanehash3x8614hash128_vaesvl+0x904>
+       1  5bdac0086d6e  and          r9,0xfffffffffffffffc
+       1  5bdac0086d72  data16 data16 data16 data16 cs nop WORD PTR [rax+rax*1+0x0]
+       3  5bdac0086d80  vmovdqu64    ymm19,YMMWORD PTR [rdx+0x60]
+       3  5bdac0086d87  vmovdqu64    ymm16,YMMWORD PTR [rdx]
+       3  5bdac0086d8d  vmovdqu64    ymm18,YMMWORD PTR [rdx+0x40]
+       3  5bdac0086d94  vmovdqu64    ymm17,YMMWORD PTR [rdx+0x20]
+       3  5bdac0086d9b  vmovdqu64    ymm20,YMMWORD PTR [rdx+0x280]
+       3  5bdac0086da2  vmovdqu64    ymm21,YMMWORD PTR [rdx+0x2c0]
+       3  5bdac0086da9  vmovdqu64    ymm22,YMMWORD PTR [rdx+0x2e0]
+       3  5bdac0086db0  vpxorq       ymm12,ymm12,ymm19
+       3  5bdac0086db6  vpxorq       ymm15,ymm15,ymm16
+       3  5bdac0086dbc  vpxorq       ymm13,ymm13,ymm18
+       3  5bdac0086dc2  vpxorq       ymm14,ymm14,ymm17
+       3  5bdac0086dc8  vaesenc      ymm5,ymm5,ymm12
+       3  5bdac0086dcd  vmovdqu      ymm12,YMMWORD PTR [rdx+0x80]
+       3  5bdac0086dd5  vaesenc      ymm8,ymm8,ymm15
+       3  5bdac0086dda  vaesenc      ymm6,ymm6,ymm13
+       3  5bdac0086ddf  vaesenc      ymm7,ymm7,ymm14
+       3  5bdac0086de4  vpxor        ymm11,ymm11,ymm12
+       3  5bdac0086de9  vaesenc      ymm4,ymm4,ymm11
+       3  5bdac0086dee  vmovdqu      ymm11,YMMWORD PTR [rdx+0xa0]
+       3  5bdac0086df6  vpxor        ymm10,ymm10,ymm11
+       3  5bdac0086dfb  vaesenc      ymm3,ymm3,ymm10
+       3  5bdac0086e00  vmovdqu      ymm10,YMMWORD PTR [rdx+0xc0]
+       3  5bdac0086e08  vpxor        ymm9,ymm9,ymm10
+       3  5bdac0086e0d  vaesenc      ymm1,ymm1,ymm9
+       3  5bdac0086e12  vmovdqu      ymm9,YMMWORD PTR [rdx+0xe0]
+       3  5bdac0086e1a  vpxor        ymm2,ymm9,ymm2
+       3  5bdac0086e1e  vaesenc      ymm0,ymm0,ymm2
+       3  5bdac0086e23  vmovdqu      ymm2,YMMWORD PTR [rdx+0x100]
+       3  5bdac0086e2b  vpxorq       ymm13,ymm16,ymm2
+       3  5bdac0086e31  vaesenc      ymm8,ymm8,ymm13
+       3  5bdac0086e36  vmovdqu      ymm13,YMMWORD PTR [rdx+0x120]
+       3  5bdac0086e3e  vpxorq       ymm14,ymm17,ymm13
+       3  5bdac0086e44  vmovdqu64    ymm17,YMMWORD PTR [rdx+0x220]
+       3  5bdac0086e4b  vaesenc      ymm7,ymm7,ymm14
+       3  5bdac0086e50  vmovdqu      ymm14,YMMWORD PTR [rdx+0x140]
+       3  5bdac0086e58  vpxorq       ymm15,ymm18,ymm14
+       3  5bdac0086e5e  vmovdqu64    ymm18,YMMWORD PTR [rdx+0x240]
+       3  5bdac0086e65  vaesenc      ymm6,ymm6,ymm15
+       3  5bdac0086e6a  vmovdqu      ymm15,YMMWORD PTR [rdx+0x160]
+       3  5bdac0086e72  vpxorq       ymm16,ymm19,ymm15
+       3  5bdac0086e78  vmovdqu64    ymm19,YMMWORD PTR [rdx+0x260]
+       3  5bdac0086e7f  vaesenc      ymm5,ymm5,ymm16
+       3  5bdac0086e85  vmovdqu64    ymm16,YMMWORD PTR [rdx+0x180]
+       3  5bdac0086e8c  vpxorq       ymm12,ymm12,ymm16
+       3  5bdac0086e92  vaesenc      ymm4,ymm4,ymm12
+       3  5bdac0086e97  vmovdqu      ymm12,YMMWORD PTR [rdx+0x1a0]
+       3  5bdac0086e9f  vpxor        ymm11,ymm11,ymm12
+       3  5bdac0086ea4  vaesenc      ymm3,ymm3,ymm11
+       3  5bdac0086ea9  vmovdqu      ymm11,YMMWORD PTR [rdx+0x1c0]
+       3  5bdac0086eb1  vpxor        ymm10,ymm10,ymm11
+       3  5bdac0086eb6  vaesenc      ymm1,ymm1,ymm10
+       3  5bdac0086ebb  vmovdqu      ymm10,YMMWORD PTR [rdx+0x1e0]
+       3  5bdac0086ec3  vpxor        ymm9,ymm9,ymm10
+       3  5bdac0086ec8  vaesenc      ymm0,ymm0,ymm9
+       3  5bdac0086ecd  vmovdqu      ymm9,YMMWORD PTR [rdx+0x200]
+       3  5bdac0086ed5  vpxor        ymm2,ymm9,ymm2
+       3  5bdac0086ed9  vaesenc      ymm2,ymm8,ymm2
+       3  5bdac0086ede  vpxorq       ymm8,ymm13,ymm17
+       3  5bdac0086ee4  vmovdqu      ymm13,YMMWORD PTR [rdx+0x340]
+       3  5bdac0086eec  vaesenc      ymm7,ymm7,ymm8
+       3  5bdac0086ef1  vpxorq       ymm8,ymm14,ymm18
+       3  5bdac0086ef7  vmovdqu      ymm14,YMMWORD PTR [rdx+0x320]
+       3  5bdac0086eff  vaesenc      ymm6,ymm6,ymm8
+       3  5bdac0086f04  vpxorq       ymm8,ymm15,ymm19
+       3  5bdac0086f0a  vmovdqu      ymm15,YMMWORD PTR [rdx+0x300]
+       3  5bdac0086f12  vaesenc      ymm5,ymm5,ymm8
+       3  5bdac0086f17  vpxorq       ymm8,ymm16,ymm20
+       3  5bdac0086f1d  vmovdqu64    ymm16,YMMWORD PTR [rdx+0x2a0]
+       3  5bdac0086f24  vaesenc      ymm4,ymm4,ymm8
+       3  5bdac0086f29  vpxorq       ymm8,ymm12,ymm16
+       3  5bdac0086f2f  vmovdqu      ymm12,YMMWORD PTR [rdx+0x360]
+       3  5bdac0086f37  vaesenc      ymm3,ymm3,ymm8
+       3  5bdac0086f3c  vpxorq       ymm8,ymm11,ymm21
+       3  5bdac0086f42  vmovdqu      ymm11,YMMWORD PTR [rdx+0x380]
+       3  5bdac0086f4a  vaesenc      ymm1,ymm1,ymm8
+       3  5bdac0086f4f  vpxorq       ymm8,ymm10,ymm22
+       3  5bdac0086f55  vmovdqu      ymm10,YMMWORD PTR [rdx+0x3a0]
+       3  5bdac0086f5d  vaesenc      ymm0,ymm0,ymm8
+       3  5bdac0086f62  vpxor        ymm8,ymm9,ymm15
+       3  5bdac0086f67  vmovdqu      ymm9,YMMWORD PTR [rdx+0x3c0]
+       3  5bdac0086f6f  vaesenc      ymm8,ymm2,ymm8
+       3  5bdac0086f74  vpxorq       ymm2,ymm17,ymm14
+       3  5bdac0086f7a  vaesenc      ymm7,ymm7,ymm2
+       3  5bdac0086f7f  vpxorq       ymm2,ymm18,ymm13
+       3  5bdac0086f85  vaesenc      ymm6,ymm6,ymm2
+       3  5bdac0086f8a  vpxorq       ymm2,ymm19,ymm12
+       3  5bdac0086f90  vaesenc      ymm5,ymm5,ymm2
+       3  5bdac0086f95  vpxorq       ymm2,ymm20,ymm11
+       3  5bdac0086f9b  vaesenc      ymm4,ymm4,ymm2
+       3  5bdac0086fa0  vpxorq       ymm2,ymm16,ymm10
+       3  5bdac0086fa6  vaesenc      ymm3,ymm3,ymm2
+       3  5bdac0086fab  vpxorq       ymm2,ymm21,ymm9
+       3  5bdac0086fb1  vaesenc      ymm1,ymm1,ymm2
+       3  5bdac0086fb6  vmovdqu      ymm2,YMMWORD PTR [rdx+0x3e0]
+       3  5bdac0086fbe  add          rdx,0x400
+       3  5bdac0086fc5  add          r9,0xfffffffffffffffc
+       3  5bdac0086fc9  vpxorq       ymm16,ymm22,ymm2
+       3  5bdac0086fcf  vaesenc      ymm0,ymm0,ymm16
+       3  5bdac0086fd5  jne          3ad80 <_RNvNtCs5hqDXKMfHFN_8lanehash3x8614hash128_vaesvl+0x6a0>
+       1  5bdac0086fdb  test         r8,r8
+       1  5bdac0086fde  je           3b0cc <_RNvNtCs5hqDXKMfHFN_8lanehash3x8614hash128_vaesvl+0x9ec>
+       1  5bdac0086fe4  shl          r8d,0x8
+       1  5bdac0086fe8  xor          r9d,r9d
+       1  5bdac0086feb  nop          DWORD PTR [rax+rax*1+0x0]
+       2  5bdac0086ff0  vmovdqa64    ymm16,ymm15
+       2  5bdac0086ff6  vmovdqu      ymm15,YMMWORD PTR [rdx+r9*1]
+       2  5bdac0086ffc  vmovdqa64    ymm17,ymm14
+       2  5bdac0087002  vmovdqu      ymm14,YMMWORD PTR [rdx+r9*1+0x20]
+       2  5bdac0087009  vmovdqa64    ymm18,ymm13
+       2  5bdac008700f  vmovdqu      ymm13,YMMWORD PTR [rdx+r9*1+0x40]
+       2  5bdac0087016  vmovdqa64    ymm19,ymm12
+       2  5bdac008701c  vmovdqu      ymm12,YMMWORD PTR [rdx+r9*1+0x60]
+       2  5bdac0087023  vmovdqa64    ymm20,ymm11
+       2  5bdac0087029  vmovdqu      ymm11,YMMWORD PTR [rdx+r9*1+0x80]
+       2  5bdac0087033  vmovdqa64    ymm21,ymm10
+       2  5bdac0087039  vmovdqu      ymm10,YMMWORD PTR [rdx+r9*1+0xa0]
+       2  5bdac0087043  vmovdqa64    ymm22,ymm9
+       2  5bdac0087049  vmovdqu      ymm9,YMMWORD PTR [rdx+r9*1+0xc0]
+       2  5bdac0087053  vmovdqa64    ymm23,ymm2
+       2  5bdac0087059  vpxorq       ymm2,ymm16,ymm15
+       2  5bdac008705f  vaesenc      ymm8,ymm8,ymm2
+       2  5bdac0087064  vpxorq       ymm2,ymm17,ymm14
+       2  5bdac008706a  vaesenc      ymm7,ymm7,ymm2
+       2  5bdac008706f  vpxorq       ymm2,ymm18,ymm13
+       2  5bdac0087075  vaesenc      ymm6,ymm6,ymm2
+       2  5bdac008707a  vpxorq       ymm2,ymm19,ymm12
+       2  5bdac0087080  vaesenc      ymm5,ymm5,ymm2
+       2  5bdac0087085  vpxorq       ymm2,ymm20,ymm11
+       2  5bdac008708b  vaesenc      ymm4,ymm4,ymm2
+       2  5bdac0087090  vpxorq       ymm2,ymm21,ymm10
+       2  5bdac0087096  vaesenc      ymm3,ymm3,ymm2
+       2  5bdac008709b  vpxorq       ymm2,ymm22,ymm9
+       2  5bdac00870a1  vaesenc      ymm1,ymm1,ymm2
+       2  5bdac00870a6  vmovdqu      ymm2,YMMWORD PTR [rdx+r9*1+0xe0]
+       2  5bdac00870b0  add          r9,0x100
+       2  5bdac00870b7  vpxorq       ymm16,ymm23,ymm2
+       2  5bdac00870bd  vaesenc      ymm0,ymm0,ymm16
+       2  5bdac00870c3  cmp          r8,r9
+       2  5bdac00870c6  jne          3aff0 <_RNvNtCs5hqDXKMfHFN_8lanehash3x8614hash128_vaesvl+0x910>
+       1  5bdac00870cc  shl          rcx,0x8
+       1  5bdac00870d0  add          rcx,rdi
+       1  5bdac00870d3  mov          edx,0x305
+       1  5bdac00870d8  vmovdqa64    ymm18,ymm1
+       1  5bdac00870de  bextr        edx,eax,edx
+       1  5bdac00870e3  je           3b7f6 <_RNvNtCs5hqDXKMfHFN_8lanehash3x8614hash128_vaesvl+0x1116>
+       1  5bdac00877f6  test         al,0x10
+       1  5bdac00877f8  jne          3b805 <_RNvNtCs5hqDXKMfHFN_8lanehash3x8614hash128_vaesvl+0x1125>
+       1  5bdac00877fa  vmovdqa64    ymm16,ymm15
+       1  5bdac0087800  jmp          3bcbe <_RNvNtCs5hqDXKMfHFN_8lanehash3x8614hash128_vaesvl+0x15de>
+       1  5bdac0087cbe  vpbroadcastq ymm15,rsi
+       1  5bdac0087cc4  vpxor        ymm1,ymm15,YMMWORD PTR [rdi+rsi*1-0x100]
+       1  5bdac0087ccd  vpxorq       ymm16,ymm16,ymm1
+       1  5bdac0087cd3  vaesenc      ymm8,ymm8,ymm16
+       1  5bdac0087cd9  vpxord       xmm16,xmm16,xmm16
+       1  5bdac0087cdf  vaesenc      ymm8,ymm8,ymm16
+       1  5bdac0087ce5  vpxor        ymm1,ymm8,ymm1
+       1  5bdac0087ce9  vpxor        ymm8,ymm15,YMMWORD PTR [rdi+rsi*1-0xe0]
+       1  5bdac0087cf2  vpxor        ymm14,ymm14,ymm8
+       1  5bdac0087cf7  vaesenc      ymm7,ymm7,ymm14
+       1  5bdac0087cfc  vaesenc      ymm7,ymm7,ymm16
+       1  5bdac0087d02  vpxor        ymm7,ymm8,ymm7
+       1  5bdac0087d06  vpxor        ymm8,ymm15,YMMWORD PTR [rdi+rsi*1-0xc0]
+       1  5bdac0087d0f  vpxor        ymm13,ymm13,ymm8
+       1  5bdac0087d14  vaesenc      ymm6,ymm6,ymm13
+       1  5bdac0087d19  vaesenc      ymm6,ymm6,ymm16
+       1  5bdac0087d1f  vpxor        ymm6,ymm8,ymm6
+       1  5bdac0087d23  vpxor        ymm8,ymm15,YMMWORD PTR [rdi+rsi*1-0xa0]
+       1  5bdac0087d2c  vpxor        ymm12,ymm12,ymm8
+       1  5bdac0087d31  vaesenc      ymm5,ymm5,ymm12
+       1  5bdac0087d36  vaesenc      ymm5,ymm5,ymm16
+       1  5bdac0087d3c  vpxor        ymm5,ymm8,ymm5
+       1  5bdac0087d40  vpxor        ymm8,ymm15,YMMWORD PTR [rdi+rsi*1-0x80]
+       1  5bdac0087d46  vpxor        ymm11,ymm11,ymm8
+       1  5bdac0087d4b  vaesenc      ymm4,ymm4,ymm11
+       1  5bdac0087d50  vaesenc      ymm4,ymm4,ymm16
+       1  5bdac0087d56  vpxor        ymm4,ymm8,ymm4
+       1  5bdac0087d5a  vpxor        ymm8,ymm15,YMMWORD PTR [rdi+rsi*1-0x60]
+       1  5bdac0087d60  vpxor        ymm10,ymm10,ymm8
+       1  5bdac0087d65  vaesenc      ymm3,ymm3,ymm10
+       1  5bdac0087d6a  vbroadcasti128 ymm10,XMMWORD PTR [rip+0xfffffffffffc939d]        # 5110 <__abi_tag+0x4e14>
+       1  5bdac0087d73  vaesenc      ymm3,ymm3,ymm16
+       1  5bdac0087d79  vpxor        ymm3,ymm8,ymm3
+       1  5bdac0087d7d  vpxor        ymm8,ymm15,YMMWORD PTR [rdi+rsi*1-0x40]
+       1  5bdac0087d83  vpxor        ymm9,ymm9,ymm8
+       1  5bdac0087d88  vaesenc      ymm9,ymm18,ymm9
+       1  5bdac0087d8e  vaesenc      ymm9,ymm9,ymm16
+       1  5bdac0087d94  vpxor        ymm8,ymm9,ymm8
+       1  5bdac0087d99  vpxor        ymm9,ymm15,YMMWORD PTR [rdi+rsi*1-0x20]
+       1  5bdac0087d9f  vpxor        ymm2,ymm9,ymm2
+       1  5bdac0087da3  vaesenc      ymm0,ymm0,ymm2
+       1  5bdac0087da8  vbroadcasti128 ymm2,XMMWORD PTR [rip+0xfffffffffffc929f]        # 5050 <__abi_tag+0x4d54>
+       1  5bdac0087db1  vaesenc      ymm0,ymm0,ymm16
+       1  5bdac0087db7  vpxor        ymm0,ymm9,ymm0
+       1  5bdac0087dbb  vaesenc      ymm1,ymm1,ymm2
+       1  5bdac0087dc0  vaesenc      ymm7,ymm7,ymm2
+       1  5bdac0087dc5  vaesenc      ymm6,ymm6,ymm2
+       1  5bdac0087dca  vaesenc      ymm5,ymm5,ymm2
+       1  5bdac0087dcf  vbroadcasti128 ymm9,XMMWORD PTR [rip+0xfffffffffffc91e8]        # 4fc0 <__abi_tag+0x4cc4>
+       1  5bdac0087dd8  vaesenc      ymm4,ymm4,ymm2
+       1  5bdac0087ddd  vaesenc      ymm3,ymm3,ymm2
+       1  5bdac0087de2  vaesenc      ymm8,ymm8,ymm2
+       1  5bdac0087de7  vaesenc      ymm0,ymm0,ymm2
+       1  5bdac0087dec  vaesenc      ymm1,ymm1,ymm10
+       1  5bdac0087df1  vaesenc      ymm7,ymm7,ymm10
+       1  5bdac0087df6  vaesenc      ymm6,ymm6,ymm10
+       1  5bdac0087dfb  vaesenc      ymm5,ymm5,ymm10
+       1  5bdac0087e00  vaesenc      ymm4,ymm4,ymm10
+       1  5bdac0087e05  vaesenc      ymm3,ymm3,ymm10
+       1  5bdac0087e0a  vaesenc      ymm8,ymm8,ymm10
+       1  5bdac0087e0f  vaesenc      ymm0,ymm0,ymm10
+       1  5bdac0087e14  vaesenc      ymm1,ymm1,ymm9
+       1  5bdac0087e19  vaesenc      ymm7,ymm7,ymm9
+       1  5bdac0087e1e  vaesenc      ymm6,ymm6,ymm9
+       1  5bdac0087e23  vaesenc      ymm5,ymm5,ymm9
+       1  5bdac0087e28  vaesenc      ymm4,ymm4,ymm9
+       1  5bdac0087e2d  vaesenc      ymm3,ymm3,ymm9
+       1  5bdac0087e32  vaesenc      ymm0,ymm0,ymm9
+       1  5bdac0087e37  vpaddq       ymm1,ymm7,ymm1
+       1  5bdac0087e3b  vpaddq       ymm5,ymm5,ymm6
+       1  5bdac0087e3f  vpaddq       ymm3,ymm3,ymm4
+       1  5bdac0087e43  vpaddq       ymm1,ymm5,ymm1
+       1  5bdac0087e47  vaesenc      ymm5,ymm8,ymm9
+       1  5bdac0087e4c  vpaddq       ymm3,ymm5,ymm3
+       1  5bdac0087e50  vpaddq       ymm1,ymm3,ymm1
+       1  5bdac0087e54  vpaddq       ymm0,ymm0,ymm1
+       1  5bdac0087e58  vextracti128 xmm1,ymm0,0x1
+       1  5bdac0087e5e  vpaddq       xmm0,xmm1,xmm0
+       1  5bdac0087e62  vpbroadcastq xmm1,xmm15
+       1  5bdac0087e67  vpxor        xmm1,xmm1,XMMWORD PTR [rip+0xfffffffffffc8dc1]        # 4c30 <__abi_tag+0x4934>
+       1  5bdac0087e6f  vaesenc      xmm0,xmm0,xmm1
+       1  5bdac0087e74  vaesenc      xmm0,xmm0,XMMWORD PTR [rip+0xfffffffffffc8fb3]        # 4e30 <__abi_tag+0x4b34>
+       1  5bdac0087e7d  vaesenc      xmm0,xmm0,XMMWORD PTR [rip+0xfffffffffffc8c1a]        # 4aa0 <__abi_tag+0x47a4>
+       1  5bdac0087e86  vmovq        rax,xmm0
+       1  5bdac0087e8b  vpextrq      rdx,xmm0,0x1
+       1  5bdac0087e91  vzeroupper   
+       1  5bdac0087e94  ret          

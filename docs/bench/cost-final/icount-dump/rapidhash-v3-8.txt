@@ -1,0 +1,87 @@
+# per-call executed instructions (count = delta/2), rapidhash-v3 8 B, commit 2489dfea1c
+
+<_RNCNvCsb0frSIv3UDu_6icount5trace0B3_>:
+       1  5bdac006b610  mov          rax,QWORD PTR [rdi]
+       1  5bdac006b613  mov          rdx,QWORD PTR [rdi+0x8]
+       1  5bdac006b617  mov          rcx,rsi
+       1  5bdac006b61a  mov          rsi,QWORD PTR [rdi+0x10]
+       1  5bdac006b61e  mov          r8,QWORD PTR [rax]
+       1  5bdac006b621  mov          rax,QWORD PTR [rdx]
+       1  5bdac006b624  mov          rdx,QWORD PTR [rdi+0x18]
+       1  5bdac006b628  mov          rdi,rax
+       1  5bdac006b62b  jmp          r8
+
+<_RNvCsb0frSIv3UDu_6icount11call_single>:
+       1  5bdac006c7c0  test         rdx,rdx
+       1  5bdac006c7c3  je           207d4 <_RNvCsb0frSIv3UDu_6icount11call_single+0x14>
+       1  5bdac006c7c5  mov          rax,rdi
+       1  5bdac006c7c8  mov          rdi,QWORD PTR [rsi]
+       1  5bdac006c7cb  mov          rsi,QWORD PTR [rsi+0x8]
+       1  5bdac006c7cf  mov          rdx,rcx
+       1  5bdac006c7d2  jmp          rax
+
+<_RNvCsb0frSIv3UDu_6icount8trace_fn>:
+      -1  5bdac0076508  cmp          QWORD PTR [rsp+0x8],0x0
+      -1  5bdac007650e  je           2a529 <_RNvCsb0frSIv3UDu_6icount8trace_fn+0x5b9>
+      -1  5bdac0076510  xor          r12d,r12d
+      -1  5bdac0076513  mov          rdi,r15
+      -1  5bdac0076516  mov          rsi,r12
+      -1  5bdac0076519  call         r14
+      -1  5bdac007651c  inc          r12
+      -1  5bdac007651f  xor          rbx,rax
+      -1  5bdac0076522  cmp          r12,QWORD PTR [rsp+0x8]
+      -1  5bdac0076527  jb           2a513 <_RNvCsb0frSIv3UDu_6icount8trace_fn+0x5a3>
+      -1  5bdac0076529  mov          edi,0x13
+      -1  5bdac007652e  call         QWORD PTR [rip+0x630e4]        # 8d618 <raise@GLIBC_2.2.5>
+       0  5bdac0076534  cmp          QWORD PTR [rsp+0x10],0x0
+       0  5bdac007653a  je           2a555 <_RNvCsb0frSIv3UDu_6icount8trace_fn+0x5e5>
+       0  5bdac007653c  xor          r12d,r12d
+       1  5bdac007653f  mov          rdi,r15
+       1  5bdac0076542  mov          rsi,r12
+       1  5bdac0076545  call         r14
+       1  5bdac0076548  inc          r12
+       1  5bdac007654b  xor          rbx,rax
+       1  5bdac007654e  cmp          r12,QWORD PTR [rsp+0x10]
+       1  5bdac0076553  jb           2a53f <_RNvCsb0frSIv3UDu_6icount8trace_fn+0x5cf>
+       0  5bdac0076555  mov          edi,0x13
+       0  5bdac007655a  call         QWORD PTR [rip+0x630b8]        # 8d618 <raise@GLIBC_2.2.5>
+
+<_RNvCs5ULIPHMUnbY_5bench11h_rapidhash>:
+       1  5bdac0079120  sub          rsp,0x48
+       1  5bdac0079124  vmovups      ymm0,YMMWORD PTR [rip+0xfffffffffffdc6dc]        # 9808 <__abi_tag+0x950c>
+       1  5bdac007912c  vmovups      ymm1,YMMWORD PTR [rip+0xfffffffffffdc6ec]        # 9820 <__abi_tag+0x9524>
+       1  5bdac0079134  mov          r8,rdx
+       1  5bdac0079137  movabs       rdx,0x4b33a62ed433d4a3
+       1  5bdac0079141  mov          rcx,rsi
+       1  5bdac0079144  movabs       rsi,0x8bb84b93962eacc9
+       1  5bdac007914e  mov          rax,rdi
+       1  5bdac0079151  xor          rdx,r8
+       1  5bdac0079154  mulx         rdx,rdi,rsi
+       1  5bdac0079159  xor          rdi,r8
+       1  5bdac007915c  xor          rdi,rdx
+       1  5bdac007915f  mov          QWORD PTR [rsp+0x8],rdi
+       1  5bdac0079164  vmovups      YMMWORD PTR [rsp+0x10],ymm0
+       1  5bdac007916a  vmovups      YMMWORD PTR [rsp+0x28],ymm1
+       1  5bdac0079170  cmp          rcx,0x11
+       1  5bdac0079174  jae          2d1ee <_RNvCs5ULIPHMUnbY_5bench11h_rapidhash+0xce>
+       1  5bdac0079176  cmp          rcx,0x3
+       1  5bdac007917a  jbe          2d18f <_RNvCs5ULIPHMUnbY_5bench11h_rapidhash+0x6f>
+       1  5bdac007917c  xor          rdi,rcx
+       1  5bdac007917f  cmp          rcx,0x7
+       1  5bdac0079183  jbe          2d1b1 <_RNvCs5ULIPHMUnbY_5bench11h_rapidhash+0x91>
+       1  5bdac0079185  mov          rdx,QWORD PTR [rax]
+       1  5bdac0079188  mov          rax,QWORD PTR [rax+rcx*1-0x8]
+       1  5bdac007918d  jmp          2d1bd <_RNvCs5ULIPHMUnbY_5bench11h_rapidhash+0x9d>
+       1  5bdac00791bd  xor          rax,rdi
+       1  5bdac00791c0  xor          rdx,rsi
+       1  5bdac00791c3  movabs       rdi,0xaaaaaaaaaaaaaaaa
+       1  5bdac00791cd  xor          rcx,rsi
+       1  5bdac00791d0  mulx         rax,rdx,rax
+       1  5bdac00791d5  xor          rdi,rdx
+       1  5bdac00791d8  xor          rcx,rax
+       1  5bdac00791db  mov          rdx,rcx
+       1  5bdac00791de  mulx         rax,rcx,rdi
+       1  5bdac00791e3  xor          rax,rcx
+       1  5bdac00791e6  add          rsp,0x48
+       1  5bdac00791ea  vzeroupper   
+       1  5bdac00791ed  ret          

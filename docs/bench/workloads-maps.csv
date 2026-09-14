@@ -1,0 +1,10 @@
+# maps: cycles per operation (APERF, core 3), 104334 words, 1000000 u64, 200000 structs
+# hasher,words_insert,words_lookup,u64_insert,u64_lookup,struct_insert,struct_lookup
+lanehash,65.7,55.6,192.2,64.6,144.2,49.7
+gxhash,56.7,37.4,131.1,73.7,228.5,52.5
+rapidhash-fast,41.9,34.0,174.7,48.7,106.6,29.3
+rapidhash-quality,47.2,40.0,137.3,52.9,114.9,37.0
+foldhash-fast,41.5,34.2,139.1,48.0,122.5,30.6
+ahash,52.5,39.7,136.5,47.5,118.1,29.6
+xxh3,150.7,164.1,230.1,170.8,311.3,226.5
+std-siphash,96.0,91.8,293.7,304.8,555.1,630.7

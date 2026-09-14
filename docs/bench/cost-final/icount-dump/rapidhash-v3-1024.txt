@@ -1,0 +1,284 @@
+# per-call executed instructions (count = delta/2), rapidhash-v3 1024 B, commit 2489dfea1c
+
+<_RNCNvCsb0frSIv3UDu_6icount5trace0B3_>:
+       1  5bdac006b610  mov          rax,QWORD PTR [rdi]
+       1  5bdac006b613  mov          rdx,QWORD PTR [rdi+0x8]
+       1  5bdac006b617  mov          rcx,rsi
+       1  5bdac006b61a  mov          rsi,QWORD PTR [rdi+0x10]
+       1  5bdac006b61e  mov          r8,QWORD PTR [rax]
+       1  5bdac006b621  mov          rax,QWORD PTR [rdx]
+       1  5bdac006b624  mov          rdx,QWORD PTR [rdi+0x18]
+       1  5bdac006b628  mov          rdi,rax
+       1  5bdac006b62b  jmp          r8
+
+<_RNvCsb0frSIv3UDu_6icount11call_single>:
+       1  5bdac006c7c0  test         rdx,rdx
+       1  5bdac006c7c3  je           207d4 <_RNvCsb0frSIv3UDu_6icount11call_single+0x14>
+       1  5bdac006c7c5  mov          rax,rdi
+       1  5bdac006c7c8  mov          rdi,QWORD PTR [rsi]
+       1  5bdac006c7cb  mov          rsi,QWORD PTR [rsi+0x8]
+       1  5bdac006c7cf  mov          rdx,rcx
+       1  5bdac006c7d2  jmp          rax
+
+<_RNvCsb0frSIv3UDu_6icount8trace_fn>:
+      -1  5bdac0076508  cmp          QWORD PTR [rsp+0x8],0x0
+      -1  5bdac007650e  je           2a529 <_RNvCsb0frSIv3UDu_6icount8trace_fn+0x5b9>
+      -1  5bdac0076510  xor          r12d,r12d
+      -1  5bdac0076513  mov          rdi,r15
+      -1  5bdac0076516  mov          rsi,r12
+      -1  5bdac0076519  call         r14
+      -1  5bdac007651c  inc          r12
+      -1  5bdac007651f  xor          rbx,rax
+      -1  5bdac0076522  cmp          r12,QWORD PTR [rsp+0x8]
+      -1  5bdac0076527  jb           2a513 <_RNvCsb0frSIv3UDu_6icount8trace_fn+0x5a3>
+      -1  5bdac0076529  mov          edi,0x13
+      -1  5bdac007652e  call         QWORD PTR [rip+0x630e4]        # 8d618 <raise@GLIBC_2.2.5>
+       0  5bdac0076534  cmp          QWORD PTR [rsp+0x10],0x0
+       0  5bdac007653a  je           2a555 <_RNvCsb0frSIv3UDu_6icount8trace_fn+0x5e5>
+       0  5bdac007653c  xor          r12d,r12d
+       1  5bdac007653f  mov          rdi,r15
+       1  5bdac0076542  mov          rsi,r12
+       1  5bdac0076545  call         r14
+       1  5bdac0076548  inc          r12
+       1  5bdac007654b  xor          rbx,rax
+       1  5bdac007654e  cmp          r12,QWORD PTR [rsp+0x10]
+       1  5bdac0076553  jb           2a53f <_RNvCsb0frSIv3UDu_6icount8trace_fn+0x5cf>
+       0  5bdac0076555  mov          edi,0x13
+       0  5bdac007655a  call         QWORD PTR [rip+0x630b8]        # 8d618 <raise@GLIBC_2.2.5>
+
+<_RNvCs5ULIPHMUnbY_5bench11h_rapidhash>:
+       1  5bdac0079120  sub          rsp,0x48
+       1  5bdac0079124  vmovups      ymm0,YMMWORD PTR [rip+0xfffffffffffdc6dc]        # 9808 <__abi_tag+0x950c>
+       1  5bdac007912c  vmovups      ymm1,YMMWORD PTR [rip+0xfffffffffffdc6ec]        # 9820 <__abi_tag+0x9524>
+       1  5bdac0079134  mov          r8,rdx
+       1  5bdac0079137  movabs       rdx,0x4b33a62ed433d4a3
+       1  5bdac0079141  mov          rcx,rsi
+       1  5bdac0079144  movabs       rsi,0x8bb84b93962eacc9
+       1  5bdac007914e  mov          rax,rdi
+       1  5bdac0079151  xor          rdx,r8
+       1  5bdac0079154  mulx         rdx,rdi,rsi
+       1  5bdac0079159  xor          rdi,r8
+       1  5bdac007915c  xor          rdi,rdx
+       1  5bdac007915f  mov          QWORD PTR [rsp+0x8],rdi
+       1  5bdac0079164  vmovups      YMMWORD PTR [rsp+0x10],ymm0
+       1  5bdac007916a  vmovups      YMMWORD PTR [rsp+0x28],ymm1
+       1  5bdac0079170  cmp          rcx,0x11
+       1  5bdac0079174  jae          2d1ee <_RNvCs5ULIPHMUnbY_5bench11h_rapidhash+0xce>
+       1  5bdac00791ee  lea          rsi,[rsp+0x10]
+       1  5bdac00791f3  mov          rdx,rax
+       1  5bdac00791f6  vzeroupper   
+       1  5bdac00791f9  call         2d210 <_RINvNtNtCsfamLFRcNLsC_9rapidhash2v311rapid_const19rapidhash_core_coldKb1_Kb0_KB1a_ECs5ULIPHMUnbY_5bench>
+       1  5bdac00791fe  add          rsp,0x48
+       1  5bdac0079202  ret          
+
+<_RINvNtNtCsfamLFRcNLsC_9rapidhash2v311rapid_const19rapidhash_core_coldKb1_Kb0_KB1a_ECs5ULIPHMUnbY_5bench>:
+       1  5bdac0079210  push         rbp
+       1  5bdac0079211  push         r15
+       1  5bdac0079213  push         r14
+       1  5bdac0079215  push         r13
+       1  5bdac0079217  push         r12
+       1  5bdac0079219  push         rbx
+       1  5bdac007921a  mov          rax,rdx
+       1  5bdac007921d  mov          rdx,rdi
+       1  5bdac0079220  cmp          rcx,0x71
+       1  5bdac0079224  jae          2d322 <_RINvNtNtCsfamLFRcNLsC_9rapidhash2v311rapid_const19rapidhash_core_coldKb1_Kb0_KB1a_ECs5ULIPHMUnbY_5bench+0x112>
+       1  5bdac00792e0  mov          rdx,QWORD PTR [rax+rcx*1-0x10]
+       1  5bdac00792e5  mov          rsi,QWORD PTR [rsi+0x8]
+       1  5bdac00792e9  xor          r8,QWORD PTR [rax+rcx*1-0x8]
+       1  5bdac00792ee  xor          rdx,rdi
+       1  5bdac00792f1  xor          rdi,rsi
+       1  5bdac00792f4  xor          rdx,rsi
+       1  5bdac00792f7  mulx         rax,rcx,r8
+       1  5bdac00792fc  movabs       r8,0xaaaaaaaaaaaaaaaa
+       1  5bdac0079306  xor          r8,rcx
+       1  5bdac0079309  xor          rdi,rax
+       1  5bdac007930c  mov          rdx,rdi
+       1  5bdac007930f  mulx         rax,rcx,r8
+       1  5bdac0079314  xor          rax,rcx
+       1  5bdac0079317  pop          rbx
+       1  5bdac0079318  pop          r12
+       1  5bdac007931a  pop          r13
+       1  5bdac007931c  pop          r14
+       1  5bdac007931e  pop          r15
+       1  5bdac0079320  pop          rbp
+       1  5bdac0079321  ret          
+       1  5bdac0079322  cmp          rcx,0xe1
+       1  5bdac0079329  jb           2d578 <_RINvNtNtCsfamLFRcNLsC_9rapidhash2v311rapid_const19rapidhash_core_coldKb1_Kb0_KB1a_ECs5ULIPHMUnbY_5bench+0x368>
+       1  5bdac007932f  mov          r9,QWORD PTR [rsi+0x8]
+       1  5bdac0079333  mov          r8,QWORD PTR [rsi+0x10]
+       1  5bdac0079337  mov          rdi,QWORD PTR [rsi]
+       1  5bdac007933a  mov          r11,rdx
+       1  5bdac007933d  mov          rbx,rdx
+       1  5bdac0079340  mov          r10,rdx
+       1  5bdac0079343  mov          r14,rdx
+       1  5bdac0079346  mov          r15,rdx
+       1  5bdac0079349  mov          r12,rax
+       1  5bdac007934c  mov          QWORD PTR [rsp-0x10],r9
+       1  5bdac0079351  mov          QWORD PTR [rsp-0x18],r8
+       1  5bdac0079356  mov          r9,QWORD PTR [rsi+0x18]
+       1  5bdac007935a  mov          r8,QWORD PTR [rsi+0x20]
+       1  5bdac007935e  mov          QWORD PTR [rsp-0x8],rdi
+       1  5bdac0079363  mov          rdi,rcx
+       1  5bdac0079366  mov          QWORD PTR [rsp-0x20],r9
+       1  5bdac007936b  mov          QWORD PTR [rsp-0x28],r8
+       1  5bdac0079370  mov          r9,QWORD PTR [rsi+0x28]
+       1  5bdac0079374  mov          r8,QWORD PTR [rsi+0x30]
+       1  5bdac0079378  mov          QWORD PTR [rsp-0x30],r9
+       1  5bdac007937d  mov          QWORD PTR [rsp-0x38],r8
+       1  5bdac0079382  mov          r9,rdx
+       1  5bdac0079385  mov          r8,rdx
+       4  5bdac0079388  mov          rbp,QWORD PTR [r12]
+       4  5bdac007938c  mov          rdx,r15
+       4  5bdac007938f  xor          rdx,QWORD PTR [r12+0x8]
+       4  5bdac0079394  xor          r11,QWORD PTR [r12+0x18]
+       4  5bdac0079399  xor          r9,QWORD PTR [r12+0x28]
+       4  5bdac007939e  xor          rbx,QWORD PTR [r12+0x38]
+       4  5bdac00793a3  xor          r10,QWORD PTR [r12+0x48]
+       4  5bdac00793a8  mov          r13,QWORD PTR [r12+0x50]
+       4  5bdac00793ad  xor          r14,QWORD PTR [r12+0x58]
+       4  5bdac00793b2  xor          r8,QWORD PTR [r12+0x68]
+       4  5bdac00793b7  add          rdi,0xffffffffffffff20
+       4  5bdac00793be  xor          rbp,QWORD PTR [rsp-0x8]
+       4  5bdac00793c3  xor          r13,QWORD PTR [rsp-0x30]
+       4  5bdac00793c8  mulx         r15,rdx,rbp
+       4  5bdac00793cd  mov          rbp,QWORD PTR [r12+0x10]
+       4  5bdac00793d2  xor          rbp,QWORD PTR [rsp-0x10]
+       4  5bdac00793d7  xor          r15,rdx
+       4  5bdac00793da  mov          rdx,r11
+       4  5bdac00793dd  xor          r15,QWORD PTR [r12+0x78]
+       4  5bdac00793e2  mulx         r11,rdx,rbp
+       4  5bdac00793e7  mov          rbp,QWORD PTR [r12+0x20]
+       4  5bdac00793ec  xor          rbp,QWORD PTR [rsp-0x18]
+       4  5bdac00793f1  xor          r11,rdx
+       4  5bdac00793f4  mov          rdx,r9
+       4  5bdac00793f7  xor          r11,QWORD PTR [r12+0x88]
+       4  5bdac00793ff  mulx         r9,rdx,rbp
+       4  5bdac0079404  mov          rbp,QWORD PTR [r12+0x30]
+       4  5bdac0079409  xor          rbp,QWORD PTR [rsp-0x20]
+       4  5bdac007940e  xor          r9,rdx
+       4  5bdac0079411  mov          rdx,rbx
+       4  5bdac0079414  xor          r9,QWORD PTR [r12+0x98]
+       4  5bdac007941c  mulx         rbx,rdx,rbp
+       4  5bdac0079421  mov          rbp,QWORD PTR [r12+0x40]
+       4  5bdac0079426  xor          rbp,QWORD PTR [rsp-0x28]
+       4  5bdac007942b  xor          rbx,rdx
+       4  5bdac007942e  mov          rdx,r10
+       4  5bdac0079431  xor          rbx,QWORD PTR [r12+0xa8]
+       4  5bdac0079439  mulx         r10,rdx,rbp
+       4  5bdac007943e  xor          r10,rdx
+       4  5bdac0079441  mov          rdx,r14
+       4  5bdac0079444  mulx         r14,rbp,r13
+       4  5bdac0079449  mov          r13,QWORD PTR [r12+0x60]
+       4  5bdac007944e  mov          rdx,r8
+       4  5bdac0079451  xor          r10,QWORD PTR [r12+0xb8]
+       4  5bdac0079459  xor          r13,QWORD PTR [rsp-0x38]
+       4  5bdac007945e  xor          r14,rbp
+       4  5bdac0079461  mov          rbp,QWORD PTR [r12+0xc0]
+       4  5bdac0079469  xor          r14,QWORD PTR [r12+0xc8]
+       4  5bdac0079471  xor          rbp,QWORD PTR [rsp-0x30]
+       4  5bdac0079476  mulx         r8,rdx,r13
+       4  5bdac007947b  mov          r13,QWORD PTR [r12+0x70]
+       4  5bdac0079480  xor          r13,QWORD PTR [rsp-0x8]
+       4  5bdac0079485  xor          r8,rdx
+       4  5bdac0079488  mov          rdx,r15
+       4  5bdac007948b  xor          r8,QWORD PTR [r12+0xd8]
+       4  5bdac0079493  mulx         r15,rdx,r13
+       4  5bdac0079498  mov          r13,QWORD PTR [r12+0x80]
+       4  5bdac00794a0  xor          r13,QWORD PTR [rsp-0x10]
+       4  5bdac00794a5  xor          r15,rdx
+       4  5bdac00794a8  mov          rdx,r11
+       4  5bdac00794ab  mulx         r11,rdx,r13
+       4  5bdac00794b0  mov          r13,QWORD PTR [r12+0x90]
+       4  5bdac00794b8  xor          r13,QWORD PTR [rsp-0x18]
+       4  5bdac00794bd  xor          r11,rdx
+       4  5bdac00794c0  mov          rdx,r9
+       4  5bdac00794c3  mulx         r9,rdx,r13
+       4  5bdac00794c8  mov          r13,QWORD PTR [r12+0xa0]
+       4  5bdac00794d0  xor          r13,QWORD PTR [rsp-0x20]
+       4  5bdac00794d5  xor          r9,rdx
+       4  5bdac00794d8  mov          rdx,rbx
+       4  5bdac00794db  mulx         rbx,rdx,r13
+       4  5bdac00794e0  mov          r13,QWORD PTR [r12+0xb0]
+       4  5bdac00794e8  xor          r13,QWORD PTR [rsp-0x28]
+       4  5bdac00794ed  xor          rbx,rdx
+       4  5bdac00794f0  mov          rdx,r10
+       4  5bdac00794f3  mulx         r10,r13,r13
+       4  5bdac00794f8  mov          rdx,r14
+       4  5bdac00794fb  mulx         r14,rdx,rbp
+       4  5bdac0079500  mov          rbp,QWORD PTR [r12+0xd0]
+       4  5bdac0079508  add          r12,0xe0
+       4  5bdac007950f  xor          rbp,QWORD PTR [rsp-0x38]
+       4  5bdac0079514  xor          r14,rdx
+       4  5bdac0079517  mov          rdx,r8
+       4  5bdac007951a  xor          r10,r13
+       4  5bdac007951d  mulx         r8,rdx,rbp
+       4  5bdac0079522  xor          r8,rdx
+       4  5bdac0079525  cmp          rdi,0xe0
+       4  5bdac007952c  ja           2d388 <_RINvNtNtCsfamLFRcNLsC_9rapidhash2v311rapid_const19rapidhash_core_coldKb1_Kb0_KB1a_ECs5ULIPHMUnbY_5bench+0x178>
+       1  5bdac0079532  lea          r13,[rcx-0xe1]
+       1  5bdac0079539  movabs       rbp,0x2492492492492493
+       1  5bdac0079543  mov          rdx,r13
+       1  5bdac0079546  shr          rdx,0x5
+       1  5bdac007954a  mulx         rdx,rdx,rbp
+       1  5bdac007954f  imul         rdx,rdx,0xe0
+       1  5bdac0079556  neg          rdx
+       1  5bdac0079559  lea          rdx,[rcx+rdx*1-0xe1]
+       1  5bdac0079561  sub          rdx,r13
+       1  5bdac0079564  add          rdx,rcx
+       1  5bdac0079567  cmp          rdx,0x151
+       1  5bdac007956e  mov          rdx,r15
+       1  5bdac0079571  jge          2d590 <_RINvNtNtCsfamLFRcNLsC_9rapidhash2v311rapid_const19rapidhash_core_coldKb1_Kb0_KB1a_ECs5ULIPHMUnbY_5bench+0x380>
+       1  5bdac0079590  mov          r15,QWORD PTR [rsi]
+       1  5bdac0079593  xor          rdx,QWORD PTR [r12+0x8]
+       1  5bdac0079598  mov          r13,QWORD PTR [rsi+0x8]
+       1  5bdac007959c  xor          r11,QWORD PTR [r12+0x18]
+       1  5bdac00795a1  xor          r9,QWORD PTR [r12+0x28]
+       1  5bdac00795a6  xor          rbx,QWORD PTR [r12+0x38]
+       1  5bdac00795ab  mov          rbp,QWORD PTR [rsi+0x20]
+       1  5bdac00795af  xor          r10,QWORD PTR [r12+0x48]
+       1  5bdac00795b4  xor          r14,QWORD PTR [r12+0x58]
+       1  5bdac00795b9  xor          r8,QWORD PTR [r12+0x68]
+       1  5bdac00795be  add          rdi,0xffffffffffffff90
+       1  5bdac00795c2  xor          r15,QWORD PTR [r12]
+       1  5bdac00795c6  xor          r13,QWORD PTR [r12+0x10]
+       1  5bdac00795cb  xor          rbp,QWORD PTR [r12+0x40]
+       1  5bdac00795d0  mulx         r15,rdx,r15
+       1  5bdac00795d5  xor          r15,rdx
+       1  5bdac00795d8  mov          rdx,r11
+       1  5bdac00795db  mulx         r11,rdx,r13
+       1  5bdac00795e0  mov          r13,QWORD PTR [rsi+0x10]
+       1  5bdac00795e4  xor          r13,QWORD PTR [r12+0x20]
+       1  5bdac00795e9  xor          r11,rdx
+       1  5bdac00795ec  mov          rdx,r9
+       1  5bdac00795ef  mulx         r9,rdx,r13
+       1  5bdac00795f4  mov          r13,QWORD PTR [rsi+0x18]
+       1  5bdac00795f8  xor          r13,QWORD PTR [r12+0x30]
+       1  5bdac00795fd  xor          r9,rdx
+       1  5bdac0079600  mov          rdx,rbx
+       1  5bdac0079603  mulx         rbx,r13,r13
+       1  5bdac0079608  mov          rdx,r10
+       1  5bdac007960b  mulx         r10,rdx,rbp
+       1  5bdac0079610  mov          rbp,QWORD PTR [rsi+0x30]
+       1  5bdac0079614  xor          rbp,QWORD PTR [r12+0x60]
+       1  5bdac0079619  xor          rbx,r13
+       1  5bdac007961c  mov          r13,QWORD PTR [rsi+0x28]
+       1  5bdac0079620  xor          r10,rdx
+       1  5bdac0079623  mov          rdx,r14
+       1  5bdac0079626  xor          r13,QWORD PTR [r12+0x50]
+       1  5bdac007962b  add          r12,0x70
+       1  5bdac007962f  mulx         r14,rdx,r13
+       1  5bdac0079634  xor          r14,rdx
+       1  5bdac0079637  mov          rdx,r8
+       1  5bdac007963a  mulx         r8,r13,rbp
+       1  5bdac007963f  mov          rdx,r15
+       1  5bdac0079642  xor          r8,r13
+       1  5bdac0079645  xor          r9,r11
+       1  5bdac0079648  xor          r10,rbx
+       1  5bdac007964b  xor          r8,r14
+       1  5bdac007964e  xor          r9,rdx
+       1  5bdac0079651  xor          r8,r10
+       1  5bdac0079654  xor          r8,r9
+       1  5bdac0079657  mov          rdx,r8
+       1  5bdac007965a  cmp          rdi,0x10
+       1  5bdac007965e  ja           2d230 <_RINvNtNtCsfamLFRcNLsC_9rapidhash2v311rapid_const19rapidhash_core_coldKb1_Kb0_KB1a_ECs5ULIPHMUnbY_5bench+0x20>
+       1  5bdac0079664  jmp          2d2e0 <_RINvNtNtCsfamLFRcNLsC_9rapidhash2v311rapid_const19rapidhash_core_coldKb1_Kb0_KB1a_ECs5ULIPHMUnbY_5bench+0xd0>

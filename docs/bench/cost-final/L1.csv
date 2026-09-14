@@ -1,0 +1,55 @@
+# mode=throughput rounds=5 dram=false arena=false thp=false align=Some(16) nbuf=Some(64) counter=RDPRU-APERF core=3 commit=2489dfea1c clock_check=APERF 4.177 GHz, APERF/MPERF 1.101 (boost active, governor not settable)
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples,residency,footprint_bytes,eff_GHz
+ahash,16,1.371,0.000,6.79,11.67,0.00,5,L1,12288,4.953
+foldhash,16,2.261,0.003,11.17,7.08,0.01,5,L1,12288,4.942
+gxhash,16,1.794,0.001,8.83,8.92,0.01,5,L1,12288,4.920
+lanehash,16,1.013,0.000,5.03,15.80,0.00,5,L1,12288,4.968
+rapidhash-v3,16,1.362,0.001,6.73,11.75,0.01,5,L1,12288,4.940
+xxh3,16,1.694,0.002,8.37,9.45,0.01,5,L1,12288,4.941
+# mode=throughput rounds=5 dram=false arena=false thp=false align=Some(16) nbuf=Some(64) counter=RDPRU-APERF core=3 commit=2489dfea1c clock_check=APERF 4.864 GHz, APERF/MPERF 1.282 (boost active, governor not settable)
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples,residency,footprint_bytes,eff_GHz
+gxhash-hybrid,16,1.637,0.003,8.09,9.77,0.02,5,L1,12288,4.940
+# mode=throughput rounds=5 dram=false arena=false thp=false align=Some(16) nbuf=Some(64) counter=RDPRU-APERF core=3 commit=2489dfea1c clock_check=APERF 4.811 GHz, APERF/MPERF 1.268 (boost active, governor not settable)
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples,residency,footprint_bytes,eff_GHz
+ahash,256,7.263,0.005,36.33,35.25,0.03,5,L2,28672,5.002
+foldhash,256,7.003,0.002,34.77,36.55,0.01,5,L2,28672,4.965
+gxhash,256,11.610,0.006,57.36,22.05,0.01,5,L2,28672,4.941
+lanehash,256,11.209,0.004,55.43,22.84,0.01,5,L2,28672,4.945
+rapidhash-v3,256,4.150,0.004,20.60,61.68,0.05,5,L2,28672,4.964
+xxh3,256,2.647,0.006,13.58,96.70,0.21,5,L2,28672,5.130
+# mode=throughput rounds=5 dram=false arena=false thp=false align=Some(16) nbuf=Some(64) counter=RDPRU-APERF core=3 commit=2489dfea1c clock_check=APERF 4.826 GHz, APERF/MPERF 1.272 (boost active, governor not settable)
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples,residency,footprint_bytes,eff_GHz
+gxhash-hybrid,256,12.368,0.005,61.13,20.70,0.01,5,L2,28672,4.942
+# mode=throughput rounds=5 dram=false arena=false thp=false align=Some(16) nbuf=Some(16) counter=RDPRU-APERF core=3 commit=2489dfea1c clock_check=APERF 4.632 GHz, APERF/MPERF 1.221 (boost active, governor not settable)
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples,residency,footprint_bytes,eff_GHz
+ahash,1024,9.103,0.008,46.40,112.49,0.10,5,L1,19456,5.097
+foldhash,1024,7.567,0.002,37.78,135.33,0.03,5,L1,19456,4.993
+gxhash,1024,17.304,0.109,85.95,59.18,0.37,5,L1,19456,4.967
+lanehash,1024,18.369,0.179,91.55,55.75,0.55,5,L1,19456,4.984
+rapidhash-v3,1024,6.650,0.007,33.02,153.99,0.16,5,L1,19456,4.965
+xxh3,1024,6.866,0.015,34.74,149.14,0.32,5,L1,19456,5.059
+# mode=throughput rounds=5 dram=false arena=false thp=false align=Some(16) nbuf=Some(16) counter=RDPRU-APERF core=3 commit=2489dfea1c clock_check=APERF 4.798 GHz, APERF/MPERF 1.265 (boost active, governor not settable)
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples,residency,footprint_bytes,eff_GHz
+gxhash-hybrid,1024,20.961,0.044,104.09,48.85,0.10,5,L1,19456,4.966
+# mode=throughput rounds=5 dram=false arena=false thp=false align=Some(16) nbuf=Some(4) counter=RDPRU-APERF core=3 commit=2489dfea1c clock_check=APERF 4.871 GHz, APERF/MPERF 1.284 (boost active, governor not settable)
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples,residency,footprint_bytes,eff_GHz
+ahash,4096,8.692,0.004,44.33,471.26,0.19,5,L1,17152,5.101
+foldhash,4096,7.747,0.001,38.85,528.73,0.06,5,L1,17152,5.015
+gxhash,4096,19.826,0.014,99.38,206.60,0.15,5,L1,17152,5.013
+lanehash,4096,24.683,0.019,122.31,165.95,0.13,5,L1,17152,4.955
+rapidhash-v3,4096,7.878,0.004,39.12,519.92,0.24,5,L1,17152,4.966
+xxh3,4096,12.131,0.009,59.86,337.65,0.25,5,L1,17152,4.935
+# mode=throughput rounds=5 dram=false arena=false thp=false align=Some(16) nbuf=Some(4) counter=RDPRU-APERF core=3 commit=2489dfea1c clock_check=APERF 4.822 GHz, APERF/MPERF 1.271 (boost active, governor not settable)
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples,residency,footprint_bytes,eff_GHz
+gxhash-hybrid,4096,25.536,0.005,128.68,160.40,0.03,5,L1,17152,5.039
+# mode=throughput rounds=5 dram=false arena=false thp=false align=Some(16) nbuf=Some(1) counter=RDPRU-APERF core=3 commit=2489dfea1c clock_check=APERF 4.629 GHz, APERF/MPERF 1.220 (boost active, governor not settable)
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples,residency,footprint_bytes,eff_GHz
+ahash,16384,8.475,0.009,41.87,1933.24,1.95,5,L1,16576,4.941
+foldhash,16384,7.757,0.000,39.07,2112.28,0.12,5,L1,16576,5.038
+gxhash,16384,20.705,0.011,104.44,791.32,0.42,5,L1,16576,5.044
+lanehash,16384,27.897,0.006,137.85,587.29,0.12,5,L1,16576,4.941
+rapidhash-v3,16384,8.268,0.002,41.04,1981.68,0.57,5,L1,16576,4.964
+xxh3,16384,15.216,0.009,75.17,1076.77,0.64,5,L1,16576,4.940
+# mode=throughput rounds=5 dram=false arena=false thp=false align=Some(16) nbuf=Some(1) counter=RDPRU-APERF core=3 commit=2489dfea1c clock_check=APERF 4.788 GHz, APERF/MPERF 1.262 (boost active, governor not settable)
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples,residency,footprint_bytes,eff_GHz
+gxhash-hybrid,16384,24.964,0.010,126.45,656.29,0.27,5,L1,16576,5.065

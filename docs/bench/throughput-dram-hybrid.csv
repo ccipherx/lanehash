@@ -1,0 +1,3 @@
+# mode=throughput rounds=3 dram=true align=Some(16) counter=RDPRU-APERF pinned=taskset
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples
+gxhash-hybrid,1048576,6.343,0.048,32.04,165314.65,1258.53,3

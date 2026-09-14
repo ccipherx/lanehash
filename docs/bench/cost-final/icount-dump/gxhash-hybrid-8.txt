@@ -1,0 +1,74 @@
+# per-call executed instructions (count = delta/2), gxhash-hybrid 8 B, commit 2489dfea1c
+
+<_RNCNvCslu3TULtcGh6_6icount5trace0B3_>:
+       1  6453b4fcde50  mov          rax,QWORD PTR [rdi+0x8]
+       1  6453b4fcde54  mov          rcx,rsi
+       1  6453b4fcde57  mov          r8,QWORD PTR [rdi]
+       1  6453b4fcde5a  mov          rsi,QWORD PTR [rdi+0x10]
+       1  6453b4fcde5e  mov          rdx,QWORD PTR [rdi+0x18]
+       1  6453b4fcde62  mov          rax,QWORD PTR [rax]
+       1  6453b4fcde65  mov          rdi,rax
+       1  6453b4fcde68  jmp          QWORD PTR [r8]
+
+<_RNvCslu3TULtcGh6_6icount11call_single>:
+       1  6453b4fcf700  test         rdx,rdx
+       1  6453b4fcf703  je           20714 <_RNvCslu3TULtcGh6_6icount11call_single+0x14>
+       1  6453b4fcf705  mov          rax,rdi
+       1  6453b4fcf708  mov          rdi,QWORD PTR [rsi]
+       1  6453b4fcf70b  mov          rsi,QWORD PTR [rsi+0x8]
+       1  6453b4fcf70f  mov          rdx,rcx
+       1  6453b4fcf712  jmp          rax
+
+<_RNvCslu3TULtcGh6_6icount8trace_fn>:
+      -1  6453b4fd9fd8  cmp          QWORD PTR [rsp+0x8],0x0
+      -1  6453b4fd9fde  je           2aff9 <_RNvCslu3TULtcGh6_6icount8trace_fn+0x5b9>
+      -1  6453b4fd9fe0  xor          r12d,r12d
+      -1  6453b4fd9fe3  mov          rdi,r15
+      -1  6453b4fd9fe6  mov          rsi,r12
+      -1  6453b4fd9fe9  call         r14
+      -1  6453b4fd9fec  inc          r12
+      -1  6453b4fd9fef  xor          rbx,rax
+      -1  6453b4fd9ff2  cmp          r12,QWORD PTR [rsp+0x8]
+      -1  6453b4fd9ff7  jb           2afe3 <_RNvCslu3TULtcGh6_6icount8trace_fn+0x5a3>
+      -1  6453b4fd9ff9  mov          edi,0x13
+      -1  6453b4fd9ffe  call         QWORD PTR [rip+0x5ead4]        # 89ad8 <raise@GLIBC_2.2.5>
+       0  6453b4fda004  cmp          QWORD PTR [rsp+0x10],0x0
+       0  6453b4fda00a  je           2b025 <_RNvCslu3TULtcGh6_6icount8trace_fn+0x5e5>
+       0  6453b4fda00c  xor          r12d,r12d
+       1  6453b4fda00f  mov          rdi,r15
+       1  6453b4fda012  mov          rsi,r12
+       1  6453b4fda015  call         r14
+       1  6453b4fda018  inc          r12
+       1  6453b4fda01b  xor          rbx,rax
+       1  6453b4fda01e  cmp          r12,QWORD PTR [rsp+0x10]
+       1  6453b4fda023  jb           2b00f <_RNvCslu3TULtcGh6_6icount8trace_fn+0x5cf>
+       0  6453b4fda025  mov          edi,0x13
+       0  6453b4fda02a  call         QWORD PTR [rip+0x5eaa8]        # 89ad8 <raise@GLIBC_2.2.5>
+
+<_RNvCs4HWpmypNUiX_5bench8h_gxhash>:
+       1  6453b4fdfe20  push         r14
+       1  6453b4fdfe22  push         rbx
+       1  6453b4fdfe23  sub          rsp,0x18
+       1  6453b4fdfe27  test         rsi,rsi
+       1  6453b4fdfe2a  je           30e74 <_RNvCs4HWpmypNUiX_5bench8h_gxhash+0x54>
+       1  6453b4fdfe2c  cmp          rsi,0x11
+       1  6453b4fdfe30  jae          30e7d <_RNvCs4HWpmypNUiX_5bench8h_gxhash+0x5d>
+       1  6453b4fdfe32  mov          eax,edi
+       1  6453b4fdfe34  not          eax
+       1  6453b4fdfe36  test         eax,0xff0
+       1  6453b4fdfe3b  jne          30ead <_RNvCs4HWpmypNUiX_5bench8h_gxhash+0x8d>
+       1  6453b4fdfead  vpbroadcastb xmm0,esi
+       1  6453b4fdfeb3  vpcmpgtb     k1,xmm0,XMMWORD PTR [rip+0xfffffffffffd4123]        # 4fe0 <__abi_tag+0x4ce4>
+       1  6453b4fdfebd  vpaddb       xmm0{k1},xmm0,XMMWORD PTR [rdi]
+       1  6453b4fdfec3  jmp          30fb1 <_RNvCs4HWpmypNUiX_5bench8h_gxhash+0x191>
+       1  6453b4fdffb1  vpbroadcastq xmm1,rdx
+       1  6453b4fdffb7  vaesenc      xmm0,xmm0,xmm1
+       1  6453b4fdffbc  vaesenc      xmm0,xmm0,XMMWORD PTR [rip+0xfffffffffffd3d1b]        # 4ce0 <__abi_tag+0x49e4>
+       1  6453b4fdffc5  vaesenc      xmm0,xmm0,XMMWORD PTR [rip+0xfffffffffffd3c82]        # 4c50 <__abi_tag+0x4954>
+       1  6453b4fdffce  vaesenclast  xmm0,xmm0,XMMWORD PTR [rip+0xfffffffffffd3d89]        # 4d60 <__abi_tag+0x4a64>
+       1  6453b4fdffd7  vmovq        rax,xmm0
+       1  6453b4fdffdc  add          rsp,0x18
+       1  6453b4fdffe0  pop          rbx
+       1  6453b4fdffe1  pop          r14
+       1  6453b4fdffe3  vzeroupper   
+       1  6453b4fdffe6  ret          

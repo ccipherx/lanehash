@@ -1,0 +1,27 @@
+# maps: cycles per operation (APERF, core 3), 104334 words, 1000000 u64, 200000 structs; commit=2489dfea1c
+# hasher,words_insert,words_lookup,u64_insert,u64_lookup,struct_insert,struct_lookup,string_insert,bytes_mixed_lookup,hashbrown_words_lookup
+lanehash,48.9,36.6,136.1,47.2,101.3,30.9,123.5,70.9,36.7
+gxhash,56.5,37.1,116.6,46.3,154.2,35.3,167.8,57.1,37.3
+rapidhash-fast,42.8,34.4,128.6,44.6,120.0,28.7,119.2,64.6,33.8
+rapidhash-quality,47.8,39.7,137.8,49.4,114.8,36.2,128.5,70.6,39.0
+foldhash-fast,42.6,34.3,131.0,50.9,106.2,29.6,120.4,57.5,34.3
+ahash,50.8,39.5,126.2,46.1,115.3,30.5,142.2,58.4,39.7
+xxh3,150.7,162.9,229.8,123.0,192.6,179.2,167.2,180.8,162.9
+std-siphash,95.0,91.3,228.4,175.9,238.1,227.2,156.5,155.6,90.6
+# dedup: cycles per 4 KiB page (hash128 + HashSet<u128> insert), 20000 pages
+lanehash,526
+gxhash,495
+xxh3-128,588
+rapidhash-v3(64x2),1055
+# checksum: 64 MiB in 1 MiB chunks: GB/s (wall) and B/cycle; thp=false commit=2489dfea1c
+lanehash,45.8,8.9
+lanehash-stream,47.2,9.5
+lanehash-vaes256,47.8,9.7
+lanehash-aesni,49.7,10.1
+gxhash,49.9,10.1
+xxh3,50.9,10.3
+rapidhash-v3,39.0,7.8
+# fusion: 64 MiB produced by a xorshift generator; cycles per byte for produce-all+hash-all vs produce-64KiB+hash-piece (Stream); commit=2489dfea1c
+produce-only,0.754
+produce-all+hash-all,0.886,hash-share=0.133
+fused-64KiB-stream,0.784,hash-share=0.030

@@ -1,0 +1,12 @@
+# checksum: 512 MiB in 1 MiB chunks: GB/s (wall) and B/cycle; thp=false commit=2489dfea1c
+rapidhash-v3,32.6,6.6
+xxh3,33.1,6.7
+gxhash,33.1,6.7
+lanehash-aesni,32.9,6.7
+lanehash-vaes256,33.1,6.7
+lanehash-stream,33.2,6.7
+lanehash,33.1,6.7
+# fusion: 64 MiB produced by a xorshift generator; cycles per byte for produce-all+hash-all vs produce-64KiB+hash-piece (Stream); commit=2489dfea1c
+produce-only,0.754
+produce-all+hash-all,0.897,hash-share=0.143
+fused-64KiB-stream,0.784,hash-share=0.031

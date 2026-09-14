@@ -1,0 +1,18 @@
+# mode=batch rounds=5 dram=false arena=false thp=false align=Some(16) nbuf=Some(64) counter=RDPRU-APERF core=3 commit=2489dfea1c clock_check=APERF 4.717 GHz, APERF/MPERF 1.244 (boost active, governor not settable)
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples,residency,footprint_bytes,eff_GHz
+lanehash-batch1,256,7.675,0.001,37.60,33.36,0.00,5,L2,28672,4.900
+lanehash-batch2,256,8.768,0.006,43.05,29.20,0.02,5,L2,28672,4.910
+lanehash-batch4,256,11.168,0.007,54.78,22.92,0.01,5,L2,28672,4.905
+lanehash-batch8,256,11.726,0.005,57.61,21.83,0.01,5,L2,28672,4.913
+# mode=batch rounds=5 dram=false arena=false thp=false align=Some(16) nbuf=Some(16) counter=RDPRU-APERF core=3 commit=2489dfea1c clock_check=APERF 4.810 GHz, APERF/MPERF 1.268 (boost active, governor not settable)
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples,residency,footprint_bytes,eff_GHz
+lanehash-batch1,1024,16.405,0.049,81.04,62.42,0.19,5,L1,19456,4.940
+lanehash-batch2,1024,16.497,0.018,81.52,62.07,0.07,5,L1,19456,4.941
+lanehash-batch4,1024,17.448,0.022,86.58,58.69,0.07,5,L1,19456,4.962
+lanehash-batch8,1024,17.635,0.030,87.54,58.07,0.10,5,L1,19456,4.964
+# mode=batch rounds=5 dram=false arena=false thp=false align=Some(16) nbuf=Some(4) counter=RDPRU-APERF core=3 commit=2489dfea1c clock_check=APERF 4.682 GHz, APERF/MPERF 1.234 (boost active, governor not settable)
+# hash,size,bytes_per_cycle_median,bpc_mad,GB_s_median,cycles_per_hash_median,cph_mad,samples,residency,footprint_bytes,eff_GHz
+lanehash-batch1,4096,23.635,0.026,117.49,173.30,0.19,5,L1,17152,4.971
+lanehash-batch2,4096,24.073,0.037,119.66,170.15,0.26,5,L1,17152,4.971
+lanehash-batch4,4096,24.252,0.023,120.92,168.89,0.16,5,L1,17152,4.986
+lanehash-batch8,4096,24.223,0.013,120.60,169.09,0.09,5,L1,17152,4.979

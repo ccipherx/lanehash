@@ -1,0 +1,81 @@
+# per-call executed instructions (count = delta/2), xxh3 4 B, commit 2489dfea1c
+
+<_RNCNvCsb0frSIv3UDu_6icount5trace0B3_>:
+       1  5bdac006b610  mov          rax,QWORD PTR [rdi]
+       1  5bdac006b613  mov          rdx,QWORD PTR [rdi+0x8]
+       1  5bdac006b617  mov          rcx,rsi
+       1  5bdac006b61a  mov          rsi,QWORD PTR [rdi+0x10]
+       1  5bdac006b61e  mov          r8,QWORD PTR [rax]
+       1  5bdac006b621  mov          rax,QWORD PTR [rdx]
+       1  5bdac006b624  mov          rdx,QWORD PTR [rdi+0x18]
+       1  5bdac006b628  mov          rdi,rax
+       1  5bdac006b62b  jmp          r8
+
+<_RNvCsb0frSIv3UDu_6icount11call_single>:
+       1  5bdac006c7c0  test         rdx,rdx
+       1  5bdac006c7c3  je           207d4 <_RNvCsb0frSIv3UDu_6icount11call_single+0x14>
+       1  5bdac006c7c5  mov          rax,rdi
+       1  5bdac006c7c8  mov          rdi,QWORD PTR [rsi]
+       1  5bdac006c7cb  mov          rsi,QWORD PTR [rsi+0x8]
+       1  5bdac006c7cf  mov          rdx,rcx
+       1  5bdac006c7d2  jmp          rax
+
+<_RNvCsb0frSIv3UDu_6icount8trace_fn>:
+      -1  5bdac0076508  cmp          QWORD PTR [rsp+0x8],0x0
+      -1  5bdac007650e  je           2a529 <_RNvCsb0frSIv3UDu_6icount8trace_fn+0x5b9>
+      -1  5bdac0076510  xor          r12d,r12d
+      -1  5bdac0076513  mov          rdi,r15
+      -1  5bdac0076516  mov          rsi,r12
+      -1  5bdac0076519  call         r14
+      -1  5bdac007651c  inc          r12
+      -1  5bdac007651f  xor          rbx,rax
+      -1  5bdac0076522  cmp          r12,QWORD PTR [rsp+0x8]
+      -1  5bdac0076527  jb           2a513 <_RNvCsb0frSIv3UDu_6icount8trace_fn+0x5a3>
+      -1  5bdac0076529  mov          edi,0x13
+      -1  5bdac007652e  call         QWORD PTR [rip+0x630e4]        # 8d618 <raise@GLIBC_2.2.5>
+       0  5bdac0076534  cmp          QWORD PTR [rsp+0x10],0x0
+       0  5bdac007653a  je           2a555 <_RNvCsb0frSIv3UDu_6icount8trace_fn+0x5e5>
+       0  5bdac007653c  xor          r12d,r12d
+       1  5bdac007653f  mov          rdi,r15
+       1  5bdac0076542  mov          rsi,r12
+       1  5bdac0076545  call         r14
+       1  5bdac0076548  inc          r12
+       1  5bdac007654b  xor          rbx,rax
+       1  5bdac007654e  cmp          r12,QWORD PTR [rsp+0x10]
+       1  5bdac0076553  jb           2a53f <_RNvCsb0frSIv3UDu_6icount8trace_fn+0x5cf>
+       0  5bdac0076555  mov          edi,0x13
+       0  5bdac007655a  call         QWORD PTR [rip+0x630b8]        # 8d618 <raise@GLIBC_2.2.5>
+
+<_RNvCs5ULIPHMUnbY_5bench6h_xxh3>:
+       1  5bdac007b4b0  cmp          rsi,0x11
+       1  5bdac007b4b4  jae          2f508 <_RNvCs5ULIPHMUnbY_5bench6h_xxh3+0x58>
+       1  5bdac007b4b6  cmp          rsi,0x8
+       1  5bdac007b4ba  jbe          2f6f0 <_RNvCs5ULIPHMUnbY_5bench6h_xxh3+0x240>
+       1  5bdac007b6f0  cmp          rsi,0x3
+       1  5bdac007b6f4  jbe          2f76c <_RNvCs5ULIPHMUnbY_5bench6h_xxh3+0x2bc>
+       1  5bdac007b6f6  mov          eax,edx
+       1  5bdac007b6f8  bswap        eax
+       1  5bdac007b6fa  movabs       r8,0xc73ab174c5ecd5a2
+       1  5bdac007b704  mov          ecx,DWORD PTR [rdi+rsi*1-0x4]
+       1  5bdac007b708  shl          rax,0x20
+       1  5bdac007b70c  xor          rax,rdx
+       1  5bdac007b70f  sub          r8,rax
+       1  5bdac007b712  mov          eax,DWORD PTR [rdi]
+       1  5bdac007b714  shl          rax,0x20
+       1  5bdac007b718  or           rax,rcx
+       1  5bdac007b71b  xor          rax,r8
+       1  5bdac007b71e  rorx         rcx,rax,0xf
+       1  5bdac007b724  rorx         rdx,rax,0x28
+       1  5bdac007b72a  xor          rdx,rcx
+       1  5bdac007b72d  xor          rdx,rax
+       1  5bdac007b730  movabs       rax,0x9fb21c651e98df25
+       1  5bdac007b73a  imul         rdx,rax
+       1  5bdac007b73e  mov          rcx,rdx
+       1  5bdac007b741  shr          rcx,0x23
+       1  5bdac007b745  add          rcx,rsi
+       1  5bdac007b748  xor          rcx,rdx
+       1  5bdac007b74b  imul         rcx,rax
+       1  5bdac007b74f  mov          rax,rcx
+       1  5bdac007b752  shr          rax,0x1c
+       1  5bdac007b756  xor          rax,rcx
+       1  5bdac007b759  ret          
