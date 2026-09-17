@@ -1,0 +1,45 @@
+[package]
+name = "lanehash-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+lanehash = { path = ".." }
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
+
+[[bin]]
+name = "oneshot"
+path = "fuzz_targets/oneshot.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "stream"
+path = "fuzz_targets/stream.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "batch"
+path = "fuzz_targets/batch.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "hasher"
+path = "fuzz_targets/hasher.rs"
+test = false
+doc = false
+bench = false
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
