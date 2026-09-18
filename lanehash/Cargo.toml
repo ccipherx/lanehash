@@ -6,9 +6,11 @@ rust-version = "1.89"
 publish = true
 license = "MIT OR Apache-2.0"
 description = "The fastest non-cryptographic, highest quality hash algorithm"
+repository = "https://github.com/ccipherx/lanehash"
+homepage = "https://github.com/ccipherx/lanehash"
 keywords = ["hash", "hasher", "no-std", "lanehash"]
 categories = ["algorithms", "no-std"]
-exclude = ["Cargo.lock", "fuzz"]
+include = ["src/**/*", "tests/**/*", "README.md", "LICENSE-MIT", "LICENSE-APACHE"]
 
 [features]
 default = ["std"]
