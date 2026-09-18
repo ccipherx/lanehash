@@ -6,5 +6,6 @@ __pycache__/
 .idea/
 .DS_Store
 .venv/
-Cargo.locklanehash-c/test_*
+Cargo.lock
+lanehash-c/test_*
 !lanehash-c/test_vs_rust.c
