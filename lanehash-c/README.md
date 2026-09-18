@@ -1,0 +1,31 @@
+# lanehash, C port
+
+A self-contained C99 implementation of the lanehash function, bit-identical to the Rust
+crate (`../lanehash`). Written for the SMHasher submission, usable on its own.
+
+Files: `lanehash.h` (API), `lanehash.c`, `lanehash_constants.h` (generated from
+`../lanehash/src/constants.rs`).
+
+```c
+#include "lanehash.h"
+uint64_t h = lanehash64(buf, len, seed);
+uint8_t h128[16];            /* 16 little-endian bytes, low 64 bits == lanehash64 */
+lanehash128(buf, len, seed, h128);
+```
+
+Backends are chosen at compile time and all produce the same output:
+
+| Flags | Path |
+|---|---|
+| `-march=native` on a CPU with VAES, or `-maes -mavx2 -mvaes` | two lanes per ymm register |
+| `-maes` | one lane per xmm register |
+| none, or `-DLANEHASH_PORTABLE` | software AES round (slow above 64 bytes, correct everywhere) |
+
+Verification values (SMHasher): 0x9FF60BEF (64-bit), 0x1A79672D (128-bit).
+
+`make test` builds the three variants and compares each with the Rust crate through
+`../lanehash-ffi` on 12 678 (length, seed, alignment) cases (lengths 0–2100, 4 KiB, 64 KiB,
+512 KiB and 1 MiB boundaries, six seeds). Speed on the reference Zen 4 with `-O3
+-march=native`, relative to the Rust crate: within 3 % from 4 KiB up, 9 % slower at 1 KiB
+(the C port has no differential-form loop) and 20 % slower at 256 B; with `-maes` only,
+the 16-lane loop runs at 17 B/cycle against 23 for the Rust AES-NI backend.
