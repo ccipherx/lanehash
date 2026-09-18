@@ -69,7 +69,7 @@
 /* ------------------------------------------------------------------------- */
 /* scalar helpers                                                             */
 
-#if defined(__SIZEOF_INT128__)
+#if defined(__SIZEOF_INT128__) && !defined(LANEHASH_NO_INT128)
 __extension__ typedef unsigned __int128 lh_u128;
 static inline void lh_mul128(uint64_t a, uint64_t b, uint64_t *lo, uint64_t *hi) {
     lh_u128 r = (lh_u128)a * b;
