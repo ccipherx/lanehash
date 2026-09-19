@@ -6,7 +6,7 @@ A fast, non-cryptographic hash with 64-bit and 128-bit outputs. Inputs over 64 b
 * **Fast in `HashMap`** — 36.6 cycles per `&str` lookup.
 * **High quality** — passes all SMHasher and SMHasher3 tests.
 * **Stable output** — all backends produce identical bits.
-* **Runtime CPU dispatch** — VAES, AES-NI, Armv8 AES, or portable fallback.
+* **Runtime CPU dispatch** — VAES, AES-NI, Armv8 AES, or a T-table software fallback.
 * **Streaming + batching** — streaming matches one-shot hashing; batch hashing interleaves records.
 * **`std::hash` support** — `RandomState` and `FixedState`.
 * **`no_std`**, zero dependencies.
@@ -59,7 +59,7 @@ let fixed: HashMap<u64, u64, lanehash::FixedState> =
 ## Features
 
 * `std` (default) — runtime CPU detection and `RandomState`.
-* `force-fallback` — portable backend for testing.
+* `force-fallback` — the T-table software backend on every target (testing).
 
 Without `std`, the backend is selected at compile time from `-C target-feature`.
 
@@ -71,7 +71,7 @@ Without `std`, the backend is selected at compile time from `-C target-feature`.
 | x86-64  | `vaes256` | VAES + AVX2           |
 | x86-64  | `aesni`   | AES-NI + SSE2         |
 | aarch64 | `neon`    | Armv8 AES             |
-| any     | `spec`    | Portable software AES |
+| any     | `soft`    | T-table software AES  |
 
 All backends produce identical output.
 

@@ -7,7 +7,7 @@ A fast, non-cryptographic 64-bit and 128-bit hash for bulk data.
 - **Fast:** 25–30 bytes/cycle on cache-resident 4 KiB+ inputs.
 - **High quality:** passes all tested SMHasher and SMHasher3 tests.
 - **Stable:** `hash64` and `hash128` produce identical output across backends.
-- **Portable:** AES-NI, VAES, Armv8 AES, or a software fallback, selected automatically.
+- **Portable:** AES-NI, VAES, Armv8 AES, or a T-table software fallback, selected automatically.
 - **Streaming & batched:** supports `Stream` and `hash64_batch`.
 - **`HashMap` / `HashSet`:** provides `RandomState` and `FixedState`.
 - **`no_std`:** no dependencies.
@@ -94,7 +94,7 @@ The fastest supported backend is selected automatically:
 | x86-64 | VAES + AVX2 |
 | x86-64 | AES-NI |
 | aarch64 | Armv8 AES |
-| Any | Portable software fallback |
+| Any | T-table software AES (portable) |
 
 All backends produce the same bits as the portable reference.
 

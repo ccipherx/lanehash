@@ -29,6 +29,15 @@ pub const SPEC: Backend = Backend {
     batch2_l8: crate::spec::batch2_l8_spec,
 };
 
+pub const SOFT: Backend = Backend {
+    name: "soft",
+    one_shot: crate::soft::hash128_lanes,
+    absorb16: crate::soft::absorb16_soft,
+    finish16: crate::soft::finish16_soft,
+    batch4_l4: crate::soft::batch4_l4_soft,
+    batch2_l8: crate::soft::batch2_l8_soft,
+};
+
 #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
 pub const AESNI: Backend = Backend {
     name: "aesni",
@@ -111,7 +120,7 @@ fn select() -> &'static Backend {
             }
         }
     }
-    &SPEC
+    &SOFT
 }
 
 static CACHE: AtomicUsize = AtomicUsize::new(0);

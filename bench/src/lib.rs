@@ -48,6 +48,7 @@ pub type HashFn = fn(&[u8], u64) -> u64;
 
 pub fn h_lanehash(b: &[u8], s: u64) -> u64 { lanehash::hash64(b, s) }
 pub fn h_lanehash_spec(b: &[u8], s: u64) -> u64 { lanehash::spec::hash128_spec(b, s) as u64 }
+pub fn h_lanehash_soft(b: &[u8], s: u64) -> u64 { lanehash::soft::hash128_soft(b, s) as u64 }
 pub fn h_lanehash_aesni(b: &[u8], s: u64) -> u64 { if b.len() <= 64 { lanehash::hash64(b, s) } else { unsafe { (lanehash::dispatch::AESNI.one_shot)(b.as_ptr(), b.len(), s) as u64 } } }
 pub fn h_lanehash_vaes256(b: &[u8], s: u64) -> u64 { if b.len() <= 64 { lanehash::hash64(b, s) } else { unsafe { (lanehash::dispatch::VAES256.one_shot)(b.as_ptr(), b.len(), s) as u64 } } }
 /// Streaming API, one `update` (WP7.5): should equal the one-shot rate for large inputs.
@@ -84,6 +85,7 @@ pub fn hashes() -> Vec<(&'static str, HashFn)> {
     vec![
         ("lanehash", h_lanehash),
         ("lanehash-spec", h_lanehash_spec),
+        ("lanehash-soft", h_lanehash_soft),
         ("lanehash-aesni", h_lanehash_aesni),
         ("lanehash-vaes256", h_lanehash_vaes256),
         ("lanehash-direct", h_lanehash_direct),

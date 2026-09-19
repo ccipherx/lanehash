@@ -29,7 +29,7 @@ fn backends_match_spec() {
         *b = rng(&mut s) as u8;
     }
     let backends: Vec<&lanehash::dispatch::Backend> = {
-        let mut v = vec![&lanehash::dispatch::SPEC];
+        let mut v = vec![&lanehash::dispatch::SPEC, &lanehash::dispatch::SOFT];
         #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
         {
             if std::is_x86_feature_detected!("aes") {
@@ -121,7 +121,7 @@ fn batch_matches_single() {
         *b = rng(&mut s) as u8;
     }
     let backends: Vec<&lanehash::dispatch::Backend> = {
-        let mut v = vec![&lanehash::dispatch::SPEC];
+        let mut v = vec![&lanehash::dispatch::SPEC, &lanehash::dispatch::SOFT];
         #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
         {
             if std::is_x86_feature_detected!("aes") {

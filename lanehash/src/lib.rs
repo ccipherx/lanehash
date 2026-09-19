@@ -1,5 +1,5 @@
 //! lanehash: a fast non-cryptographic 64/128-bit hash. Inputs over 64 bytes go
-//! through AES lanes (AES-NI / VAES / NEON at runtime, portable fallback), shorter
+//! through AES lanes (AES-NI / VAES / NEON at runtime, T-table software AES otherwise), shorter
 //! inputs through a 64x64->128 multiply-fold path. The definition of the function
 //! is the portable `spec` module; every SIMD backend reproduces it bit-for-bit.
 //!
@@ -19,6 +19,8 @@ pub mod lanes;
 pub mod short;
 #[doc(hidden)]
 pub mod spec;
+#[doc(hidden)]
+pub mod soft;
 #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
 #[doc(hidden)]
 pub mod x86;

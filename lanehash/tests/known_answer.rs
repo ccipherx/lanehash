@@ -73,6 +73,7 @@ fn known_answers() {
         assert_eq!(lanehash::hash128(bytes, seed), want, "hash128 len={len} seed={seed:#x}");
         assert_eq!(lanehash::hash64(bytes, seed), want as u64, "hash64 len={len} seed={seed:#x}");
         assert_eq!(lanehash::spec::hash128_spec(bytes, seed), want, "spec len={len} seed={seed:#x}");
+        assert_eq!(lanehash::soft::hash128_soft(bytes, seed), want, "soft len={len} seed={seed:#x}");
         let mut st = lanehash::Stream::new(seed);
         st.update(bytes);
         assert_eq!(st.finish128(), want, "stream len={len} seed={seed:#x}");

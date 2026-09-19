@@ -1,4 +1,32 @@
-//! The software AES round must equal the hardware one.
+//! Software AES rounds must match each other and the hardware implementation.
+
+/// T-table (`soft`) matches the byte-wise (`spec`) definition on random blocks and every byte value at every position.
+#[test]
+fn ttable_round_equals_spec() {
+    let mut s = 0x9E37_79B9_7F4A_7C15u64;
+    let mut rng = || {
+        s ^= s << 13;
+        s ^= s >> 7;
+        s ^= s << 17;
+        s
+    };
+    for _ in 0..if cfg!(miri) { 2_000 } else { 65_536 } {
+        let mut x = [0u8; 16];
+        let mut k = [0u8; 16];
+        for i in 0..16 {
+            x[i] = rng() as u8;
+            k[i] = rng() as u8;
+        }
+        assert_eq!(lanehash::soft::aes_round(x, k), lanehash::spec::aes_round(x, k));
+    }
+    for pos in 0..16 {
+        for v in 0..=255u8 {
+            let mut x = [0u8; 16];
+            x[pos] = v;
+            assert_eq!(lanehash::soft::aes_round(x, [0; 16]), lanehash::spec::aes_round(x, [0; 16]), "pos {pos} value {v}");
+        }
+    }
+}
 #[cfg(target_arch = "x86_64")]
 #[test]
 fn software_round_equals_aesni() {
