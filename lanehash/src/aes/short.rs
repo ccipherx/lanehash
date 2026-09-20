@@ -16,26 +16,23 @@ fn mul128(a: u64, b: u64) -> (u64, u64) {
     (r as u64, (r >> 64) as u64)
 }
 
-/// Unprotected fold: `lo ^ hi`. Used for the final step, where no operand is
-/// raw input.
+/// Unprotected fold `lo ^ hi`, for the final step where no operand is raw input.
 #[inline(always)]
 pub fn fold(a: u64, b: u64) -> u64 {
     let (lo, hi) = mul128(a, b);
     lo ^ hi
 }
 
-/// Protected mum (wyhash/rapidhash "protected" form): returns `(a ^ lo, b ^ hi)`.
-/// A zero operand keeps the other operand's information; the linear terms are
-/// removed again by the unprotected final fold.
+/// Protected mum `(a ^ lo, b ^ hi)`: a zero operand keeps the other's information; the
+/// final unprotected fold removes the linear terms again.
 #[inline(always)]
 pub fn mum(a: u64, b: u64) -> (u64, u64) {
     let (lo, hi) = mul128(a, b);
     (a ^ lo, b ^ hi)
 }
 
-/// Per-seed secrets. `ks` is a non-linear function of the seed; the secrets are
-/// rotations of it XORed with distinct constants, with the top bit forced so no
-/// secret is 0 or 1.
+/// Per-seed secrets: rotations of the mixed seed XORed with distinct constants, top bit
+/// forced so none is 0 or 1.
 #[inline(always)]
 pub fn secrets(seed: u64) -> [u64; 8] {
     let ks = fold(seed ^ K0, K1);
@@ -57,8 +54,7 @@ fn le32(p: &[u8], i: usize) -> u64 {
     u32::from_le_bytes(p[i..i + 4].try_into().unwrap()) as u64
 }
 
-/// Hash of `p.len() <= 64` bytes (the reference path; `hash64`/`hash128` use the
-/// per-class functions below).
+/// Reference short path (`hash64` / `hash128` use the per-class functions below).
 #[inline(always)]
 pub fn short128(p: &[u8], seed: u64) -> u128 {
     short128_with(p, &secrets(seed))
@@ -77,10 +73,9 @@ pub fn short128_with(p: &[u8], k: &[u64; 8]) -> u128 {
     }
 }
 
-// One out-of-line function per length class and output width, so each gets its own
-// register allocation (the single inlined function needed six callee-saved
-// registers on every path) and `hash64`/`hash128` become prologue-free tail jumps.
-// Each derives only the secrets its class uses.
+// One out-of-line function per length class and width: its own register allocation
+// (one inlined function needed six callee-saved registers on every path), tail jumps
+// from `hash64` / `hash128`, only the secrets its class uses.
 #[inline(never)]
 pub fn short64_le16(p: &[u8], seed: u64) -> u64 {
     class_le16::<false>(p, &secrets(seed)) as u64
@@ -106,7 +101,7 @@ pub fn short128_le64(p: &[u8], seed: u64) -> u128 {
     class_le64::<true>(p, &secrets(seed))
 }
 
-/// Final folds shared by the classes: `lo` always, `hi` only for the 128-bit output.
+/// Final folds: `lo` always, `hi` only for the 128-bit output.
 #[inline(always)]
 fn finish<const HI: bool>(x: u64, y: u64, k: &[u64; 8], ln: u64) -> u128 {
     let lo = fold(x ^ k[2] ^ ln, y ^ k[3]);
@@ -146,7 +141,7 @@ fn class_le32<const HI: bool>(p: &[u8], k: &[u64; 8]) -> u128 {
 #[inline(always)]
 fn class_le64<const HI: bool>(p: &[u8], k: &[u64; 8]) -> u128 {
     let len = p.len();
-    debug_assert!(len > 32 && len <= crate::SHORT_MAX);
+    debug_assert!(len > 32 && len <= crate::aes::SHORT_MAX);
     let ln = len as u64;
     let (w0, w1, w2, w3) = (le64(p, 0), le64(p, 8), le64(p, 16), le64(p, 24));
     let (w4, w5, w6, w7) = (le64(p, len - 32), le64(p, len - 24), le64(p, len - 16), le64(p, len - 8));

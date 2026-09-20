@@ -14,16 +14,16 @@ struct Input<'a> {
 
 fuzz_target!(|input: Input| {
     let Input { seed, chunks, data } = input;
-    let mut st = lanehash::Stream::new(seed);
+    let mut st = lanehash::aes::Stream::new(seed);
     let mut done = 0;
     for c in chunks {
         let c = (c as usize).min(data.len() - done);
         st.update(&data[done..done + c]);
         done += c;
-        assert_eq!(st.finish128(), lanehash::hash128(&data[..done], seed), "checkpoint at {done}");
+        assert_eq!(st.finish128(), lanehash::aes::hash128(&data[..done], seed), "checkpoint at {done}");
     }
     st.update(&data[done..]);
-    let want = lanehash::hash128(data, seed);
+    let want = lanehash::aes::hash128(data, seed);
     assert_eq!(st.finish128(), want, "final");
     assert_eq!(st.finish64(), want as u64, "finish64");
 });

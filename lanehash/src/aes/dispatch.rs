@@ -1,5 +1,5 @@
 //! Runtime backend selection (cached function pointers).
-use crate::short::short128_with;
+use crate::aes::short::short128_with;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 pub type OneShot = unsafe fn(*const u8, usize, u64) -> u128;
@@ -14,67 +14,67 @@ pub struct Backend {
     pub one_shot: OneShot,
     pub absorb16: Absorb16,
     pub finish16: Finish16,
-    /// Four inputs of 65..=256 bytes at once (WP2).
+    /// Four inputs of 65..=256 bytes at once.
     pub batch4_l4: Batch4,
-    /// Two inputs of 257..=1024 bytes at once (WP2).
+    /// Two inputs of 257..=1024 bytes at once.
     pub batch2_l8: Batch2,
 }
 
 pub const SPEC: Backend = Backend {
     name: "spec",
-    one_shot: crate::spec::hash128_lanes,
-    absorb16: crate::stream::absorb16_spec,
-    finish16: crate::stream::finish16_spec,
-    batch4_l4: crate::spec::batch4_l4_spec,
-    batch2_l8: crate::spec::batch2_l8_spec,
+    one_shot: crate::aes::spec::hash128_lanes,
+    absorb16: crate::aes::stream::absorb16_spec,
+    finish16: crate::aes::stream::finish16_spec,
+    batch4_l4: crate::aes::spec::batch4_l4_spec,
+    batch2_l8: crate::aes::spec::batch2_l8_spec,
 };
 
 pub const SOFT: Backend = Backend {
     name: "soft",
-    one_shot: crate::soft::hash128_lanes,
-    absorb16: crate::soft::absorb16_soft,
-    finish16: crate::soft::finish16_soft,
-    batch4_l4: crate::soft::batch4_l4_soft,
-    batch2_l8: crate::soft::batch2_l8_soft,
+    one_shot: crate::aes::soft::hash128_lanes,
+    absorb16: crate::aes::soft::absorb16_soft,
+    finish16: crate::aes::soft::finish16_soft,
+    batch4_l4: crate::aes::soft::batch4_l4_soft,
+    batch2_l8: crate::aes::soft::batch2_l8_soft,
 };
 
 #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
 pub const AESNI: Backend = Backend {
     name: "aesni",
-    one_shot: crate::x86::hash128_aesni,
-    absorb16: crate::x86::absorb16_aesni,
-    finish16: crate::x86::finish16_aesni,
-    batch4_l4: crate::x86::batch4_l4_aesni,
-    batch2_l8: crate::x86::batch2_l8_aesni,
+    one_shot: crate::aes::x86::hash128_aesni,
+    absorb16: crate::aes::x86::absorb16_aesni,
+    finish16: crate::aes::x86::finish16_aesni,
+    batch4_l4: crate::aes::x86::batch4_l4_aesni,
+    batch2_l8: crate::aes::x86::batch2_l8_aesni,
 };
 #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
 pub const VAES256: Backend = Backend {
     name: "vaes256",
-    one_shot: crate::x86::hash128_vaes256,
-    absorb16: crate::x86::absorb16_vaes256,
-    finish16: crate::x86::finish16_vaes256,
-    batch4_l4: crate::x86::batch4_l4_vaes256,
-    batch2_l8: crate::x86::batch2_l8_vaes256,
+    one_shot: crate::aes::x86::hash128_vaes256,
+    absorb16: crate::aes::x86::absorb16_vaes256,
+    finish16: crate::aes::x86::finish16_vaes256,
+    batch4_l4: crate::aes::x86::batch4_l4_vaes256,
+    batch2_l8: crate::aes::x86::batch2_l8_vaes256,
 };
 
 #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
 pub const VAESVL: Backend = Backend {
     name: "vaesvl",
-    one_shot: crate::x86::hash128_vaesvl,
-    absorb16: crate::x86::absorb16_vaes256,
-    finish16: crate::x86::finish16_vaes256,
-    batch4_l4: crate::x86::batch4_l4_vaesvl,
-    batch2_l8: crate::x86::batch2_l8_vaesvl,
+    one_shot: crate::aes::x86::hash128_vaesvl,
+    absorb16: crate::aes::x86::absorb16_vaes256,
+    finish16: crate::aes::x86::finish16_vaes256,
+    batch4_l4: crate::aes::x86::batch4_l4_vaesvl,
+    batch2_l8: crate::aes::x86::batch2_l8_vaesvl,
 };
 
 #[cfg(all(target_arch = "aarch64", not(feature = "force-fallback")))]
 pub const NEON: Backend = Backend {
     name: "neon",
-    one_shot: crate::arm::hash128_neon,
-    absorb16: crate::arm::absorb16_neon,
-    finish16: crate::arm::finish16_neon,
-    batch4_l4: crate::arm::batch4_l4_neon,
-    batch2_l8: crate::arm::batch2_l8_neon,
+    one_shot: crate::aes::arm::hash128_neon,
+    absorb16: crate::aes::arm::absorb16_neon,
+    finish16: crate::aes::arm::finish16_neon,
+    batch4_l4: crate::aes::arm::batch4_l4_neon,
+    batch2_l8: crate::aes::arm::batch2_l8_neon,
 };
 
 fn select() -> &'static Backend {
@@ -137,21 +137,20 @@ pub fn backend() -> &'static Backend {
     b
 }
 
-/// 128-bit hash of `bytes` under `seed`. The body is a dispatcher of tail calls:
-/// no prologue on any path.
+/// 128-bit hash of `bytes` under `seed`; tail calls only, so no prologue on any path.
 #[inline(always)]
 pub fn hash128(bytes: &[u8], seed: u64) -> u128 {
     let len = bytes.len();
-    if len > crate::SHORT_MAX {
+    if len > crate::aes::SHORT_MAX {
         // SAFETY: backend chosen by feature detection; `bytes` is a valid slice of len > 64.
         return unsafe { (backend().one_shot)(bytes.as_ptr(), len, seed) };
     }
     if len <= 16 {
-        crate::short::short128_le16(bytes, seed)
+        crate::aes::short::short128_le16(bytes, seed)
     } else if len <= 32 {
-        crate::short::short128_le32(bytes, seed)
+        crate::aes::short::short128_le32(bytes, seed)
     } else {
-        crate::short::short128_le64(bytes, seed)
+        crate::aes::short::short128_le64(bytes, seed)
     }
 }
 
@@ -159,23 +158,21 @@ pub fn hash128(bytes: &[u8], seed: u64) -> u128 {
 #[inline(always)]
 pub fn hash64(bytes: &[u8], seed: u64) -> u64 {
     let len = bytes.len();
-    if len > crate::SHORT_MAX {
+    if len > crate::aes::SHORT_MAX {
         // SAFETY: as in `hash128`.
         return unsafe { (backend().one_shot)(bytes.as_ptr(), len, seed) as u64 };
     }
     if len <= 16 {
-        crate::short::short64_le16(bytes, seed)
+        crate::aes::short::short64_le16(bytes, seed)
     } else if len <= 32 {
-        crate::short::short64_le32(bytes, seed)
+        crate::aes::short::short64_le32(bytes, seed)
     } else {
-        crate::short::short64_le64(bytes, seed)
+        crate::aes::short::short64_le64(bytes, seed)
     }
 }
 
-/// Batched hashing (WP2): `out[i] = hash128(inputs[i], seed)` for every `i`, with
-/// same-regime inputs interleaved so eight AES chains stay busy (four at 65..=256 B,
-/// two at 257..=1024 B, four short inputs in straight-line code). Output slots are
-/// never reordered.
+/// `out[i] = hash128(inputs[i], seed)`, with same-regime inputs interleaved so eight AES
+/// chains stay busy (four at 65..=256 B, two at 257..=1024 B). Output order is kept.
 #[inline(always)]
 pub fn hash128_batch(inputs: &[&[u8]], seed: u64, out: &mut [u128]) {
     batch_with(backend(), inputs, seed, |i, v| out[i] = v);
@@ -187,9 +184,8 @@ pub fn hash64_batch(inputs: &[&[u8]], seed: u64, out: &mut [u64]) {
     batch_with(backend(), inputs, seed, |i, v| out[i] = v as u64);
 }
 
-/// The grouping logic, generic over the backend (tests run it on every backend).
-/// Groups hold pointers and lengths, not indices, and the short-path secrets are
-/// derived only when a short input appears.
+/// The grouping, generic over the backend (tests run it on every one). Short-path
+/// secrets are derived only when a short input appears.
 #[inline(always)]
 pub fn batch_with(b: &Backend, inputs: &[&[u8]], seed: u64, mut store: impl FnMut(usize, u128)) {
     let mut k: Option<[u64; 8]> = None;
@@ -197,10 +193,10 @@ pub fn batch_with(b: &Backend, inputs: &[&[u8]], seed: u64, mut store: impl FnMu
     let (mut p8, mut l8, mut i8, mut n8) = ([core::ptr::null(); 2], [0usize; 2], [0usize; 2], 0usize);
     for (i, inp) in inputs.iter().enumerate() {
         let len = inp.len();
-        if len <= crate::SHORT_MAX {
-            let k = k.get_or_insert_with(|| crate::short::secrets(seed));
+        if len <= crate::aes::SHORT_MAX {
+            let k = k.get_or_insert_with(|| crate::aes::short::secrets(seed));
             store(i, short128_with(inp, k));
-        } else if len <= crate::L4_MAX {
+        } else if len <= crate::aes::L4_MAX {
             p4[n4] = inp.as_ptr();
             l4[n4] = len;
             i4[n4] = i;
@@ -214,7 +210,7 @@ pub fn batch_with(b: &Backend, inputs: &[&[u8]], seed: u64, mut store: impl FnMu
                 store(i4[3], r[3]);
                 n4 = 0;
             }
-        } else if len <= crate::L8_MAX {
+        } else if len <= crate::aes::L8_MAX {
             p8[n8] = inp.as_ptr();
             l8[n8] = len;
             i8[n8] = i;

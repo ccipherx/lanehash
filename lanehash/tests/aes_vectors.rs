@@ -1,5 +1,5 @@
 //! Every backend must equal the portable spec for every length and seed.
-use lanehash::spec::hash128_spec;
+use lanehash::aes::spec::hash128_spec;
 
 fn rng(s: &mut u64) -> u64 {
     *s ^= *s << 13;
@@ -28,38 +28,38 @@ fn backends_match_spec() {
     for b in buf.iter_mut() {
         *b = rng(&mut s) as u8;
     }
-    let backends: Vec<&lanehash::dispatch::Backend> = {
-        let mut v = vec![&lanehash::dispatch::SPEC, &lanehash::dispatch::SOFT];
+    let backends: Vec<&lanehash::aes::dispatch::Backend> = {
+        let mut v = vec![&lanehash::aes::dispatch::SPEC, &lanehash::aes::dispatch::SOFT];
         #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
         {
             if std::is_x86_feature_detected!("aes") {
-                v.push(&lanehash::dispatch::AESNI);
+                v.push(&lanehash::aes::dispatch::AESNI);
             }
             if std::is_x86_feature_detected!("vaes") && std::is_x86_feature_detected!("avx2") {
-                v.push(&lanehash::dispatch::VAES256);
+                v.push(&lanehash::aes::dispatch::VAES256);
             }
             if std::is_x86_feature_detected!("vaes") && std::is_x86_feature_detected!("avx512f") && std::is_x86_feature_detected!("avx512vl") {
-                v.push(&lanehash::dispatch::VAESVL);
+                v.push(&lanehash::aes::dispatch::VAESVL);
             }
         }
         #[cfg(all(target_arch = "aarch64", not(feature = "force-fallback")))]
         {
             if std::arch::is_aarch64_feature_detected!("aes") {
-                v.push(&lanehash::dispatch::NEON);
+                v.push(&lanehash::aes::dispatch::NEON);
             }
         }
         v
     };
-    println!("backends: {:?}, dispatch: {}", backends.iter().map(|b| b.name).collect::<Vec<_>>(), lanehash::dispatch::backend().name);
+    println!("backends: {:?}, dispatch: {}", backends.iter().map(|b| b.name).collect::<Vec<_>>(), lanehash::aes::dispatch::backend().name);
     for &len in &lengths() {
         for &seed in &seeds {
             // random alignment offset 0..16 so unaligned loads are exercised
             let off = (rng(&mut s) % 16) as usize;
             let bytes = &buf[off..off + len];
             let want = hash128_spec(bytes, seed);
-            assert_eq!(lanehash::hash128(bytes, seed), want, "dispatch len={len} seed={seed:#x}");
-            assert_eq!(lanehash::hash64(bytes, seed), want as u64, "hash64 len={len} seed={seed:#x}");
-            if len > lanehash::SHORT_MAX {
+            assert_eq!(lanehash::aes::hash128(bytes, seed), want, "dispatch len={len} seed={seed:#x}");
+            assert_eq!(lanehash::aes::hash64(bytes, seed), want as u64, "hash64 len={len} seed={seed:#x}");
+            if len > lanehash::aes::SHORT_MAX {
                 for b in &backends {
                     let got = unsafe { (b.one_shot)(bytes.as_ptr(), len, seed) };
                     assert_eq!(got, want, "backend {} len={len} seed={seed:#x}", b.name);
@@ -84,14 +84,14 @@ fn stream_matches_oneshot() {
     for &len in &lens {
         let bytes = &buf[..len];
         for seed in [0u64, 7, u64::MAX] {
-            let want = lanehash::hash128(bytes, seed);
+            let want = lanehash::aes::hash128(bytes, seed);
             // one chunk
-            let mut st = lanehash::Stream::new(seed);
+            let mut st = lanehash::aes::Stream::new(seed);
             st.update(bytes);
             assert_eq!(st.finish128(), want, "stream one-chunk len={len}");
             // random chunking
             for _ in 0..3 {
-                let mut st = lanehash::Stream::new(seed);
+                let mut st = lanehash::aes::Stream::new(seed);
                 let mut i = 0;
                 while i < len {
                     let c = (1 + rng(&mut s) as usize % 700).min(len - i);
@@ -102,7 +102,7 @@ fn stream_matches_oneshot() {
             }
             // byte-at-a-time for small lengths
             if len <= 1300 && !cfg!(miri) {
-                let mut st = lanehash::Stream::new(seed);
+                let mut st = lanehash::aes::Stream::new(seed);
                 for b in bytes {
                     st.update(core::slice::from_ref(b));
                 }
@@ -120,24 +120,24 @@ fn batch_matches_single() {
     for b in buf.iter_mut() {
         *b = rng(&mut s) as u8;
     }
-    let backends: Vec<&lanehash::dispatch::Backend> = {
-        let mut v = vec![&lanehash::dispatch::SPEC, &lanehash::dispatch::SOFT];
+    let backends: Vec<&lanehash::aes::dispatch::Backend> = {
+        let mut v = vec![&lanehash::aes::dispatch::SPEC, &lanehash::aes::dispatch::SOFT];
         #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
         {
             if std::is_x86_feature_detected!("aes") {
-                v.push(&lanehash::dispatch::AESNI);
+                v.push(&lanehash::aes::dispatch::AESNI);
             }
             if std::is_x86_feature_detected!("vaes") && std::is_x86_feature_detected!("avx2") {
-                v.push(&lanehash::dispatch::VAES256);
+                v.push(&lanehash::aes::dispatch::VAES256);
             }
             if std::is_x86_feature_detected!("vaes") && std::is_x86_feature_detected!("avx512f") && std::is_x86_feature_detected!("avx512vl") {
-                v.push(&lanehash::dispatch::VAESVL);
+                v.push(&lanehash::aes::dispatch::VAESVL);
             }
         }
         #[cfg(all(target_arch = "aarch64", not(feature = "force-fallback")))]
         {
             if std::arch::is_aarch64_feature_detected!("aes") {
-                v.push(&lanehash::dispatch::NEON);
+                v.push(&lanehash::aes::dispatch::NEON);
             }
         }
         v
@@ -161,14 +161,14 @@ fn batch_matches_single() {
         for &seed in &[0u64, 7, u64::MAX, (round as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)] {
             let want: Vec<u128> = inputs.iter().map(|b| hash128_spec(b, seed)).collect();
             let mut got = vec![0u128; n];
-            lanehash::hash128_batch(&inputs, seed, &mut got);
+            lanehash::aes::hash128_batch(&inputs, seed, &mut got);
             assert_eq!(got, want, "hash128_batch round={round} seed={seed:#x}");
             let mut got64 = vec![0u64; n];
-            lanehash::hash64_batch(&inputs, seed, &mut got64);
+            lanehash::aes::hash64_batch(&inputs, seed, &mut got64);
             assert!(got64.iter().zip(&want).all(|(g, w)| *g == *w as u64), "hash64_batch round={round}");
             for b in &backends {
                 let mut got = vec![0u128; n];
-                lanehash::dispatch::batch_with(b, &inputs, seed, |i, v| got[i] = v);
+                lanehash::aes::dispatch::batch_with(b, &inputs, seed, |i, v| got[i] = v);
                 assert_eq!(got, want, "batch backend {} round={round} seed={seed:#x}", b.name);
             }
         }
@@ -178,7 +178,7 @@ fn batch_matches_single() {
 #[test]
 fn hasher_basic() {
     use std::hash::{BuildHasher, Hash, Hasher};
-    let bh = lanehash::FixedState::new(42);
+    let bh = lanehash::aes::FixedState::new(42);
     let mut h1 = bh.build_hasher();
     "hello".hash(&mut h1);
     let mut h2 = bh.build_hasher();
@@ -187,7 +187,7 @@ fn hasher_basic() {
     let mut h3 = bh.build_hasher();
     "hellp".hash(&mut h3);
     assert_ne!(h1.finish(), h3.finish());
-    let mut m: std::collections::HashMap<String, u32, lanehash::FixedState> = std::collections::HashMap::with_hasher(bh);
+    let mut m: std::collections::HashMap<String, u32, lanehash::aes::FixedState> = std::collections::HashMap::with_hasher(bh);
     for i in 0..1000 {
         m.insert(format!("k{i}"), i);
     }

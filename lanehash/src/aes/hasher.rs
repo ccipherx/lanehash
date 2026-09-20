@@ -1,10 +1,8 @@
-//! `core::hash::Hasher` / `BuildHasher` for maps. Output differs from the one-shot function.
-//!
-//! Accumulator design (WP5): one folded 64x64->128 multiply per
-//! `write`, the secrets precomputed once per `BuildHasher`; short byte strings enter
-//! directly (no one-shot call), longer ones through the one-shot lane hash. `finish`
-//! returns the accumulator: every write ends in a fold, so both halves are mixed.
-use crate::short::{fold, secrets};
+//! `core::hash::Hasher` / `BuildHasher`. Output differs from the one-shot function: one
+//! folded 64x64->128 multiply per `write` with secrets precomputed per `BuildHasher`;
+//! byte strings over 64 bytes go through the one-shot lane hash. `finish` returns the
+//! accumulator, which every write ends by folding.
+use crate::aes::short::{fold, secrets};
 use core::hash::{BuildHasher, Hasher};
 
 /// Map hasher: `acc = fold(acc ^ data ^ secret, data' ^ secret')` per write.
@@ -30,14 +28,13 @@ impl LaneHasher {
     pub fn with_secrets(seed: u64, k: [u64; 8]) -> Self {
         LaneHasher { acc: k[7], seed, k: [k[0], k[1], k[2], k[3]] }
     }
-    /// `> 16` bytes: 16-byte folds up to 64 bytes, the one-shot lane hash above.
-    /// Out of line so that the inlined `write` stays small enough for `hash_one`
-    /// to inline into the map's probe loop.
+    /// `> 16` bytes: 16-byte folds up to 64 bytes, the one-shot lane hash above. Out of
+    /// line so the inlined `write` stays small enough for the map's probe loop.
     #[inline(never)]
     fn write_long(&mut self, bytes: &[u8]) {
         let len = bytes.len();
         let k = &self.k;
-        if len <= crate::SHORT_MAX {
+        if len <= crate::aes::SHORT_MAX {
             // 16-byte chunks, then the last 16 bytes (overlapping); the length in the last fold
             let mut acc = self.acc;
             let mut i = 0;
@@ -47,7 +44,7 @@ impl LaneHasher {
             }
             self.acc = fold(le64(bytes, len - 16) ^ k[2] ^ acc, le64(bytes, len - 8) ^ k[3] ^ len as u64);
         } else {
-            self.acc = fold(crate::hash64(bytes, self.seed) ^ k[2] ^ self.acc, k[3] ^ len as u64);
+            self.acc = fold(crate::aes::hash64(bytes, self.seed) ^ k[2] ^ self.acc, k[3] ^ len as u64);
         }
     }
     /// Two words carrying all of `p` (`p.len() <= 16`), as in the short path.

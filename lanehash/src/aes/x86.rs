@@ -1,6 +1,6 @@
 //! x86-64 backends: AES-NI (128-bit lanes) and VAES+AVX2 (256-bit registers, two lanes each).
 use crate::constants::C;
-use crate::lanes::{Blk, Lanes, State};
+use crate::aes::lanes::{Blk, Lanes, State};
 use core::arch::x86_64::*;
 
 #[derive(Clone, Copy)]
@@ -176,48 +176,48 @@ pub unsafe fn hash128_vaes256(p: *const u8, len: usize, seed: u64) -> u128 {
 /// # Safety: requires VAES + AVX-512F/VL and `len > 64` bytes readable at `p`.
 #[target_feature(enable = "vaes,avx2,avx512f,avx512vl")]
 pub unsafe fn hash128_vaesvl(p: *const u8, len: usize, seed: u64) -> u128 {
-    if len <= crate::L4_MAX {
-        crate::lanes::lanes_hash_l4::<Ymm, 2>(p, len, seed)
-    } else if len <= crate::L8_MAX {
-        crate::lanes::lanes_hash_diff::<Ymm, 8, 4>(p, len, seed)
-    } else if len >= crate::lanes::BULK_SANDWICH_MIN {
-        crate::lanes::lanes_hash::<Ymm, 16, 8>(p, len, seed)
+    if len <= crate::aes::L4_MAX {
+        crate::aes::lanes::lanes_hash_l4::<Ymm, 2>(p, len, seed)
+    } else if len <= crate::aes::L8_MAX {
+        crate::aes::lanes::lanes_hash_diff::<Ymm, 8, 4>(p, len, seed)
+    } else if len >= crate::aes::lanes::BULK_SANDWICH_MIN {
+        crate::aes::lanes::lanes_hash::<Ymm, 16, 8>(p, len, seed)
     } else {
-        crate::lanes::lanes_hash_diff::<Ymm, 16, 8>(p, len, seed)
+        crate::aes::lanes::lanes_hash_diff::<Ymm, 16, 8>(p, len, seed)
     }
 }
 
-// ---- batched entries (WP2): 4 inputs in the L = 4 regime, 2 in the L = 8 regime ----
+// ---- batched entries: 4 inputs in the L = 4 regime, 2 in the L = 8 regime ----
 
 /// # Safety: AES-NI; every input `65..=256` bytes readable.
 #[target_feature(enable = "aes,sse2")]
 pub unsafe fn batch4_l4_aesni(ps: &[*const u8; 4], lens: &[usize; 4], seed: u64) -> [u128; 4] {
-    crate::lanes::lanes_hash_batch4::<Xmm, 4, 4>(ps, lens, seed)
+    crate::aes::lanes::lanes_hash_batch4::<Xmm, 4, 4>(ps, lens, seed)
 }
 /// # Safety: AES-NI; every input `257..=1024` bytes readable.
 #[target_feature(enable = "aes,sse2")]
 pub unsafe fn batch2_l8_aesni(ps: &[*const u8; 2], lens: &[usize; 2], seed: u64) -> [u128; 2] {
-    crate::lanes::lanes_hash_batch2::<Xmm, 8, 8>(ps, lens, seed)
+    crate::aes::lanes::lanes_hash_batch2::<Xmm, 8, 8>(ps, lens, seed)
 }
 /// # Safety: VAES + AVX2; every input `65..=256` bytes readable.
 #[target_feature(enable = "vaes,avx2")]
 pub unsafe fn batch4_l4_vaes256(ps: &[*const u8; 4], lens: &[usize; 4], seed: u64) -> [u128; 4] {
-    crate::lanes::lanes_hash_batch4::<Ymm, 4, 2>(ps, lens, seed)
+    crate::aes::lanes::lanes_hash_batch4::<Ymm, 4, 2>(ps, lens, seed)
 }
 /// # Safety: VAES + AVX2; every input `257..=1024` bytes readable.
 #[target_feature(enable = "vaes,avx2")]
 pub unsafe fn batch2_l8_vaes256(ps: &[*const u8; 2], lens: &[usize; 2], seed: u64) -> [u128; 2] {
-    crate::lanes::lanes_hash_batch2::<Ymm, 8, 4>(ps, lens, seed)
+    crate::aes::lanes::lanes_hash_batch2::<Ymm, 8, 4>(ps, lens, seed)
 }
 /// # Safety: VAES + AVX-512VL; every input `65..=256` bytes readable.
 #[target_feature(enable = "vaes,avx2,avx512f,avx512vl")]
 pub unsafe fn batch4_l4_vaesvl(ps: &[*const u8; 4], lens: &[usize; 4], seed: u64) -> [u128; 4] {
-    crate::lanes::lanes_hash_batch4::<Ymm, 4, 2>(ps, lens, seed)
+    crate::aes::lanes::lanes_hash_batch4::<Ymm, 4, 2>(ps, lens, seed)
 }
 /// # Safety: VAES + AVX-512VL; every input `257..=1024` bytes readable.
 #[target_feature(enable = "vaes,avx2,avx512f,avx512vl")]
 pub unsafe fn batch2_l8_vaesvl(ps: &[*const u8; 2], lens: &[usize; 2], seed: u64) -> [u128; 2] {
-    crate::lanes::lanes_hash_diff_batch2::<Ymm, 8, 4>(ps, lens, seed)
+    crate::aes::lanes::lanes_hash_diff_batch2::<Ymm, 8, 4>(ps, lens, seed)
 }
 
 // ---- streaming support: 16-lane state in memory, absorb/finish with each backend ----

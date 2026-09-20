@@ -1,7 +1,6 @@
-//! Contracts of the streaming and batched APIs beyond the random chunkings of
-//! `tests/vectors.rs`: every chunk size at every buffer boundary, `finish` as a
-//! checkpoint, empty updates, and batch groups that are aliased, exactly full or
-//! left over.
+//! Streaming and batched APIs beyond the random chunkings of `aes_vectors.rs`: every
+//! chunk size at every buffer boundary, `finish` as a checkpoint, empty updates, batch
+//! groups that are aliased, exactly full or left over.
 
 fn rng(s: &mut u64) -> u64 {
     *s ^= *s << 13;
@@ -10,10 +9,9 @@ fn rng(s: &mut u64) -> u64 {
     *s
 }
 
-/// `Stream::update` absorbs whole 256-byte steps from its buffer, tops up a partial
-/// step from the caller's slice, then absorbs straight from the slice; the buffer
-/// (1296 bytes) must hold the rest. Every chunk size up to 300 and the sizes at the
-/// step, buffer and regime boundaries, for lengths at those boundaries.
+/// `update` absorbs whole 256-byte steps from its buffer, tops up a partial step from
+/// the caller's slice, then absorbs straight from it; the 1296-byte buffer holds the
+/// rest. Every chunk size up to 300 and the step, buffer and regime boundaries.
 #[cfg_attr(miri, ignore)] // ~40 MB of hashing, ~1000x slower under Miri
 #[test]
 fn stream_every_chunk_size_at_boundaries() {
@@ -27,9 +25,9 @@ fn stream_every_chunk_size_at_boundaries() {
     chunks.extend([511, 512, 513, 767, 768, 769, 1023, 1024, 1025, 1295, 1296, 1297, 2000, 4095, 4096, 4097, 5000]);
     for &len in &lens {
         let bytes = &buf[..len];
-        let want = lanehash::hash128(bytes, 11);
+        let want = lanehash::aes::hash128(bytes, 11);
         for &c in &chunks {
-            let mut st = lanehash::Stream::new(11);
+            let mut st = lanehash::aes::Stream::new(11);
             for chunk in bytes.chunks(c) {
                 st.update(chunk);
             }
@@ -38,9 +36,8 @@ fn stream_every_chunk_size_at_boundaries() {
     }
 }
 
-/// `finish128(&self)` does not consume the stream: after every update it equals the
-/// one-shot hash of the bytes so far, the stream can go on, and empty updates
-/// (before, between and after) change nothing.
+/// `finish128` does not consume the stream: after every update it equals the one-shot
+/// hash so far; empty updates change nothing.
 #[test]
 fn stream_checkpoints_and_empty_updates() {
     let mut s = 0x9b05_688c_2b3e_6c1fu64;
@@ -49,16 +46,16 @@ fn stream_checkpoints_and_empty_updates() {
         *b = rng(&mut s) as u8;
     }
     for seed in [0u64, 42, u64::MAX] {
-        let mut st = lanehash::Stream::new(seed);
+        let mut st = lanehash::aes::Stream::new(seed);
         st.update(&[]);
-        assert_eq!(st.finish128(), lanehash::hash128(&[], seed));
+        assert_eq!(st.finish128(), lanehash::aes::hash128(&[], seed));
         let mut done = 0;
         while done < buf.len() {
             let c = (1 + rng(&mut s) as usize % 400).min(buf.len() - done);
             st.update(&buf[done..done + c]);
             st.update(&[]);
             done += c;
-            let want = lanehash::hash128(&buf[..done], seed);
+            let want = lanehash::aes::hash128(&buf[..done], seed);
             assert_eq!(st.finish128(), want, "checkpoint at {done} seed={seed}");
             assert_eq!(st.finish128(), want, "second finish at {done} seed={seed}");
             assert_eq!(st.finish64(), want as u64, "finish64 at {done} seed={seed}");
@@ -66,10 +63,8 @@ fn stream_checkpoints_and_empty_updates() {
     }
 }
 
-/// Batch groups: the L4 group fills at four inputs, the L8 group at two; leftovers
-/// go through the one-shot function; short and long inputs are hashed in place.
-/// Aliased inputs (the same slice in every slot of a group), exactly full groups,
-/// leftovers, empty inputs and an empty batch.
+/// Batch groups fill at four (L4) and two (L8) inputs, leftovers take the one-shot
+/// function: aliased inputs, exactly full groups, leftovers, empty inputs, empty batch.
 #[test]
 fn batch_groups_and_aliasing() {
     let mut s = 0x1f83_d9ab_fb41_bd6bu64;
@@ -97,12 +92,12 @@ fn batch_groups_and_aliasing() {
     ];
     for (ci, inputs) in cases.iter().enumerate() {
         for seed in [0u64, 9, u64::MAX] {
-            let want: Vec<u128> = inputs.iter().map(|b| lanehash::hash128(b, seed)).collect();
+            let want: Vec<u128> = inputs.iter().map(|b| lanehash::aes::hash128(b, seed)).collect();
             let mut got = vec![0u128; inputs.len()];
-            lanehash::hash128_batch(inputs, seed, &mut got);
+            lanehash::aes::hash128_batch(inputs, seed, &mut got);
             assert_eq!(got, want, "case {ci} seed={seed}");
             let mut got64 = vec![0u64; inputs.len()];
-            lanehash::hash64_batch(inputs, seed, &mut got64);
+            lanehash::aes::hash64_batch(inputs, seed, &mut got64);
             assert_eq!(got64, want.iter().map(|&w| w as u64).collect::<Vec<_>>(), "hash64_batch case {ci} seed={seed}");
         }
     }

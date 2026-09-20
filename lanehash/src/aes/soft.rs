@@ -3,8 +3,8 @@
 //!
 //! Blocks use two little-endian u64 halves; each round uses 16 T-table loads/XORs.
 use crate::constants::{C, SBOX};
-use crate::lanes::{Blk, Lanes, State};
-use crate::spec::Block;
+use crate::aes::lanes::{Blk, Lanes, State};
+use crate::aes::spec::Block;
 
 #[derive(Clone, Copy)]
 pub struct Soft {
@@ -146,15 +146,15 @@ pub unsafe fn finish16_soft(state: &[[u8; 16]; 16], c: *const u8, len: usize) ->
     State::<Soft, 16, 16>::from_blocks(state).finish(c, len)
 }
 pub unsafe fn batch4_l4_soft(ps: &[*const u8; 4], lens: &[usize; 4], seed: u64) -> [u128; 4] {
-    crate::lanes::lanes_hash_batch4::<Soft, 4, 4>(ps, lens, seed)
+    crate::aes::lanes::lanes_hash_batch4::<Soft, 4, 4>(ps, lens, seed)
 }
 pub unsafe fn batch2_l8_soft(ps: &[*const u8; 2], lens: &[usize; 2], seed: u64) -> [u128; 2] {
-    crate::lanes::lanes_hash_batch2::<Soft, 8, 8>(ps, lens, seed)
+    crate::aes::lanes::lanes_hash_batch2::<Soft, 8, 8>(ps, lens, seed)
 }
 
 pub fn hash128_soft(bytes: &[u8], seed: u64) -> u128 {
-    if bytes.len() <= crate::SHORT_MAX {
-        crate::short::short128(bytes, seed)
+    if bytes.len() <= crate::aes::SHORT_MAX {
+        crate::aes::short::short128(bytes, seed)
     } else {
         unsafe { hash128_lanes(bytes.as_ptr(), bytes.len(), seed) }
     }

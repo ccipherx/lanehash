@@ -1,6 +1,6 @@
 //! The portable definition: software AES round and the lane machine on `[u8; 16]`.
 use crate::constants::{C, SBOX};
-use crate::lanes::{Blk, Lanes};
+use crate::aes::lanes::{Blk, Lanes};
 
 pub type Block = [u8; 16];
 
@@ -144,16 +144,16 @@ pub unsafe fn hash128_lanes(p: *const u8, len: usize, seed: u64) -> u128 {
 }
 
 pub unsafe fn batch4_l4_spec(ps: &[*const u8; 4], lens: &[usize; 4], seed: u64) -> [u128; 4] {
-    crate::lanes::lanes_hash_batch4::<Block, 4, 4>(ps, lens, seed)
+    crate::aes::lanes::lanes_hash_batch4::<Block, 4, 4>(ps, lens, seed)
 }
 pub unsafe fn batch2_l8_spec(ps: &[*const u8; 2], lens: &[usize; 2], seed: u64) -> [u128; 2] {
-    crate::lanes::lanes_hash_batch2::<Block, 8, 8>(ps, lens, seed)
+    crate::aes::lanes::lanes_hash_batch2::<Block, 8, 8>(ps, lens, seed)
 }
 
 /// The complete portable hash (the specification).
 pub fn hash128_spec(bytes: &[u8], seed: u64) -> u128 {
-    if bytes.len() <= crate::SHORT_MAX {
-        crate::short::short128(bytes, seed)
+    if bytes.len() <= crate::aes::SHORT_MAX {
+        crate::aes::short::short128(bytes, seed)
     } else {
         unsafe { hash128_lanes(bytes.as_ptr(), bytes.len(), seed) }
     }

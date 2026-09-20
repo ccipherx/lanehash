@@ -1,7 +1,6 @@
-//! Statistical sanity checks: single-bit avalanche, uniqueness of near-identical
-//! inputs, length and seed sensitivity. Deterministic (xorshift), so a pass is a
-//! pass; they are not a substitute for SMHasher (logs in docs/quality/).
-//! Ignored under Miri: nothing for it to check, and ~1000x slower.
+//! Statistical sanity checks, deterministic (xorshift): single-bit avalanche, uniqueness
+//! of near-identical inputs, length and seed sensitivity. Not a substitute for SMHasher
+//! (logs in docs/quality/). Ignored under Miri.
 use std::collections::HashSet;
 
 fn rng(s: &mut u64) -> u64 {
@@ -24,10 +23,9 @@ fn seeds() -> [u64; 3] {
     [0, k0, 0x9E37_79B9_7F4A_7C15]
 }
 
-/// Flipping any single input bit changes the hash, flips at least 8 bits of each
-/// 64-bit half (so `hash64`, the low half, avalanches on its own) and on average
-/// half of all 128 bits. Every bit position for lengths 1..=300, sampled positions
-/// (first, last and random bytes) for larger lengths across the remaining regimes.
+/// Any single input bit flip changes the hash, flips at least 8 bits of each 64-bit
+/// half and on average half of all 128 bits. Every bit position for lengths 1..=300,
+/// sampled positions for larger lengths across the remaining regimes.
 #[cfg_attr(miri, ignore)]
 #[test]
 fn flip_bit_trial() {
@@ -39,7 +37,7 @@ fn flip_bit_trial() {
         for &len in &lens {
             let mut data = vec![0u8; len];
             fill(&mut data, &mut s);
-            let h = lanehash::hash128(&data, seed);
+            let h = lanehash::aes::hash128(&data, seed);
             let positions: Vec<usize> = if len <= 300 {
                 (0..len).collect()
             } else {
@@ -48,7 +46,7 @@ fn flip_bit_trial() {
             for byte in positions {
                 for bit in 0..8 {
                     data[byte] ^= 1 << bit;
-                    let d = h ^ lanehash::hash128(&data, seed);
+                    let d = h ^ lanehash::aes::hash128(&data, seed);
                     data[byte] ^= 1 << bit;
                     let (lo, hi) = ((d as u64).count_ones(), (d >> 64).count_ones());
                     assert!(lo >= 8 && hi >= 8, "len={len} seed={seed:#x} bit {byte}:{bit} flipped only {lo}+{hi} bits");
@@ -63,10 +61,9 @@ fn flip_bit_trial() {
     assert!((avg - 64.0).abs() < 0.05, "average bits flipped {avg}, expected 64");
 }
 
-/// A single bit flipped somewhere in a constant-pattern input (rapidhash's "ray
-/// cast": simulates shifted or swapped bytes, which random data does not). Over
-/// three patterns, lengths 1..=384 and every bit position, no two inputs share a
-/// 64-bit hash (1.8M values; the birthday expectation is 1e-7 collisions).
+/// One bit flipped in a constant-pattern input (rapidhash's "ray cast"): over three
+/// patterns, lengths 1..=384 and every bit position, no two inputs share a 64-bit hash
+/// (1.8M values, birthday expectation 1e-7).
 #[cfg_attr(miri, ignore)]
 #[test]
 fn single_bit_ray_cast_is_collision_free() {
@@ -77,7 +74,7 @@ fn single_bit_ray_cast_is_collision_free() {
             for byte in 0..len {
                 for bit in 0..8 {
                     data[byte] ^= 1 << bit;
-                    let h = lanehash::hash64(&data, 0);
+                    let h = lanehash::aes::hash64(&data, 0);
                     data[byte] ^= 1 << bit;
                     assert!(seen.insert(h), "collision: pattern {pattern:#04x} len {len} bit {byte}:{bit}");
                 }
@@ -86,9 +83,8 @@ fn single_bit_ray_cast_is_collision_free() {
     }
 }
 
-/// The length is part of the hash: all-zero inputs of every length 0..=4096 (and a
-/// few larger ones) hash to distinct 64-bit values, as does every prefix of a random
-/// buffer, under each seed.
+/// Length sensitivity: all-zero inputs of every length 0..=4096 and a few larger ones,
+/// and every prefix of a random buffer, hash to distinct 64-bit values under each seed.
 #[cfg_attr(miri, ignore)]
 #[test]
 fn lengths_are_distinguished() {
@@ -101,14 +97,14 @@ fn lengths_are_distinguished() {
     for seed in seeds() {
         let (mut seen_z, mut seen_r) = (HashSet::new(), HashSet::new());
         for &len in &lens {
-            assert!(seen_z.insert(lanehash::hash64(&zeros[..len], seed)), "zeros len={len} seed={seed:#x}");
-            assert!(seen_r.insert(lanehash::hash64(&random[..len], seed)), "prefix len={len} seed={seed:#x}");
+            assert!(seen_z.insert(lanehash::aes::hash64(&zeros[..len], seed)), "zeros len={len} seed={seed:#x}");
+            assert!(seen_r.insert(lanehash::aes::hash64(&random[..len], seed)), "prefix len={len} seed={seed:#x}");
         }
     }
 }
 
-/// The seed is part of the hash: sequential, single-bit, all-but-one-bit and random
-/// seeds give distinct 64-bit values for one input of each regime.
+/// Seed sensitivity: sequential, single-bit, all-but-one-bit and random seeds give
+/// distinct 64-bit values for one input of each regime.
 #[cfg_attr(miri, ignore)]
 #[test]
 fn seeds_are_distinguished() {
@@ -126,7 +122,7 @@ fn seeds_are_distinguished() {
         fill(&mut data, &mut s);
         let mut seen = HashSet::new();
         for &seed in &seeds {
-            assert!(seen.insert(lanehash::hash64(&data, seed)), "len={len} seed={seed:#x}");
+            assert!(seen.insert(lanehash::aes::hash64(&data, seed)), "len={len} seed={seed:#x}");
         }
     }
 }
