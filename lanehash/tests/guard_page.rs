@@ -1,6 +1,6 @@
 //! Inputs ending exactly at a PROT_NONE page must never fault (no over-read).
 #[cfg(unix)]
-#[cfg_attr(miri, ignore)] // mprotect is not modelled by Miri; the Miri run covers the same paths via tests/vectors.rs
+#[cfg_attr(miri, ignore)] // mprotect is not modelled by Miri; the Miri run covers the same paths via tests/aes_vectors.rs and tests/vectors.rs
 #[test]
 fn no_read_past_end() {
     use std::ptr;
@@ -20,8 +20,14 @@ fn no_read_past_end() {
         for &len in &lens {
             let start = end.sub(len);
             let bytes = std::slice::from_raw_parts(start, len);
-            let want = lanehash::spec::hash128_spec(bytes, 3);
-            assert_eq!(lanehash::hash128(bytes, 3), want);
+            let want = lanehash::aes::spec::hash128_spec(bytes, 3);
+            assert_eq!(lanehash::aes::hash128(bytes, 3), want);
+            let mut st = lanehash::aes::Stream::new(3);
+            st.update(bytes);
+            assert_eq!(st.finish128(), want, "stream len={len}");
+            // the default function: its dispatched backend and Stream against the reference
+            let want = lanehash::spec::hash128(bytes, 3);
+            assert_eq!(lanehash::hash128(bytes, 3), want, "len={len}");
             let mut st = lanehash::Stream::new(3);
             st.update(bytes);
             assert_eq!(st.finish128(), want, "stream len={len}");
@@ -34,6 +40,7 @@ fn no_read_past_end() {
             }
             let start = p.add(page);
             let bytes = std::slice::from_raw_parts(start, len);
+            let _ = lanehash::aes::hash128(bytes, 5);
             let _ = lanehash::hash128(bytes, 5);
         }
         libc::munmap(p as *mut libc::c_void, page * pages);

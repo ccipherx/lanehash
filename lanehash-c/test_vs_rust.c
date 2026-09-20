@@ -1,12 +1,15 @@
-/* Differential test: the C port must equal the Rust crate (via lanehash-ffi) for
- * every length 0..=2100 plus larger sizes, six seeds, random alignments, both widths. */
+/* C port == Rust crate (via lanehash-ffi): lengths 0..=2100 and larger, six seeds,
+ * random alignments, both widths, both functions. */
 #include "lanehash.h"
+#include "lanehash_aes.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 extern uint64_t lanehash64_c(const void *key, size_t len, uint64_t seed);
 extern void lanehash128_c(const void *key, size_t len, uint64_t seed, void *out);
+extern uint64_t lanehash_aes64_c(const void *key, size_t len, uint64_t seed);
+extern void lanehash_aes128_c(const void *key, size_t len, uint64_t seed, void *out);
 
 static uint64_t rng_s = UINT64_C(0x1234567890abcdef);
 static uint64_t rng(void) { rng_s ^= rng_s << 13; rng_s ^= rng_s >> 7; rng_s ^= rng_s << 17; return rng_s; }
@@ -33,10 +36,18 @@ int main(void) {
                 printf("MISMATCH len=%zu seed=%zu off=%zu: c64=%016llx rust64=%016llx\n", len, s, off, (unsigned long long)c64, (unsigned long long)r64);
                 return 1;
             }
+            c64 = lanehash_aes64(p, len, seeds[s]);
+            r64 = lanehash_aes64_c(p, len, seeds[s]);
+            lanehash_aes128(p, len, seeds[s], c128);
+            lanehash_aes128_c(p, len, seeds[s], r128);
+            if (c64 != r64 || memcmp(c128, r128, 16) != 0 || memcmp(c128, &c64, 8) != 0) {
+                printf("aes MISMATCH len=%zu seed=%zu off=%zu: c64=%016llx rust64=%016llx\n", len, s, off, (unsigned long long)c64, (unsigned long long)r64);
+                return 1;
+            }
             checked++;
         }
     }
-    printf("ok: %lu (length, seed) pairs identical to the Rust crate\n", checked);
+    printf("ok: %lu (length, seed) pairs identical to the Rust crate (lanehash and lanehash_aes)\n", checked);
     free(buf);
     return 0;
 }

@@ -23,7 +23,7 @@ struct Input<'a> {
     ops: Vec<Op<'a>>,
 }
 
-fn apply(h: &mut lanehash::LaneHasher, op: &Op) {
+fn apply(h: &mut lanehash::aes::LaneHasher, op: &Op) {
     match *op {
         Op::Bytes(b) => {
             let b = b.to_vec(); // exact-size allocation: an over-read is an ASan error
@@ -39,7 +39,7 @@ fn apply(h: &mut lanehash::LaneHasher, op: &Op) {
 }
 
 fuzz_target!(|input: Input| {
-    let bh = lanehash::FixedState::new(input.seed);
+    let bh = lanehash::aes::FixedState::new(input.seed);
     let (mut a, mut b) = (bh.build_hasher(), bh.build_hasher());
     for op in &input.ops {
         apply(&mut a, op);

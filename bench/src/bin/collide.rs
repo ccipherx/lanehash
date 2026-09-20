@@ -4,11 +4,12 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     let len: usize = args.get(1).map(|s| s.parse().unwrap()).unwrap_or(96);
     let seed: u64 = args.get(2).map(|s| s.parse().unwrap()).unwrap_or(0);
+    let hf: fn(&[u8], u64) -> u64 = if args.get(3).map_or(false, |s| s == "aes") { lanehash::aes::hash64 } else { lanehash::hash64 }; // third argument "aes": the AES function
     let nbits = len * 8;
     let mut seen: HashMap<u64, Vec<(usize, usize)>> = HashMap::new();
     let mut key = vec![0u8; len];
     let ins = |key: &[u8], a: usize, b: usize, seen: &mut HashMap<u64, Vec<(usize, usize)>>| {
-        let h = lanehash::hash64(key, seed);
+        let h = hf(key, seed);
         seen.entry(h).or_default().push((a, b));
     };
     ins(&key, usize::MAX, usize::MAX, &mut seen);

@@ -46,27 +46,27 @@ pub fn clock_check(ms: f64) -> (f64, f64) {
 
 pub type HashFn = fn(&[u8], u64) -> u64;
 
-pub fn h_lanehash(b: &[u8], s: u64) -> u64 { lanehash::hash64(b, s) }
-pub fn h_lanehash_spec(b: &[u8], s: u64) -> u64 { lanehash::spec::hash128_spec(b, s) as u64 }
-pub fn h_lanehash_soft(b: &[u8], s: u64) -> u64 { lanehash::soft::hash128_soft(b, s) as u64 }
-pub fn h_lanehash_aesni(b: &[u8], s: u64) -> u64 { if b.len() <= 64 { lanehash::hash64(b, s) } else { unsafe { (lanehash::dispatch::AESNI.one_shot)(b.as_ptr(), b.len(), s) as u64 } } }
-pub fn h_lanehash_vaes256(b: &[u8], s: u64) -> u64 { if b.len() <= 64 { lanehash::hash64(b, s) } else { unsafe { (lanehash::dispatch::VAES256.one_shot)(b.as_ptr(), b.len(), s) as u64 } } }
+pub fn h_aes(b: &[u8], s: u64) -> u64 { lanehash::aes::hash64(b, s) }
+pub fn h_aes_spec(b: &[u8], s: u64) -> u64 { lanehash::aes::spec::hash128_spec(b, s) as u64 }
+pub fn h_aes_soft(b: &[u8], s: u64) -> u64 { lanehash::aes::soft::hash128_soft(b, s) as u64 }
+pub fn h_aes_aesni(b: &[u8], s: u64) -> u64 { if b.len() <= 64 { lanehash::aes::hash64(b, s) } else { unsafe { (lanehash::aes::dispatch::AESNI.one_shot)(b.as_ptr(), b.len(), s) as u64 } } }
+pub fn h_aes_vaes256(b: &[u8], s: u64) -> u64 { if b.len() <= 64 { lanehash::aes::hash64(b, s) } else { unsafe { (lanehash::aes::dispatch::VAES256.one_shot)(b.as_ptr(), b.len(), s) as u64 } } }
 /// Streaming API, one `update` (WP7.5): should equal the one-shot rate for large inputs.
-pub fn h_lanehash_stream(b: &[u8], s: u64) -> u64 {
-    let mut st = lanehash::Stream::new(s);
+pub fn h_aes_stream(b: &[u8], s: u64) -> u64 {
+    let mut st = lanehash::aes::Stream::new(s);
     st.update(b);
     st.finish64()
 }
 /// Streaming API fed in 4 KiB pieces (a decompressor/parser-sized producer).
-pub fn h_lanehash_stream4k(b: &[u8], s: u64) -> u64 {
-    let mut st = lanehash::Stream::new(s);
+pub fn h_aes_stream4k(b: &[u8], s: u64) -> u64 {
+    let mut st = lanehash::aes::Stream::new(s);
     for c in b.chunks(4096) {
         st.update(c);
     }
     st.finish64()
 }
 /// Direct call to the EVEX backend (no atomic load, no indirect call): WP3.5 dispatch cost.
-pub fn h_lanehash_direct(b: &[u8], s: u64) -> u64 { if b.len() <= 64 { lanehash::hash64(b, s) } else { unsafe { lanehash::x86::hash128_vaesvl(b.as_ptr(), b.len(), s) as u64 } } }
+pub fn h_aes_direct(b: &[u8], s: u64) -> u64 { if b.len() <= 64 { lanehash::aes::hash64(b, s) } else { unsafe { lanehash::aes::x86::hash128_vaesvl(b.as_ptr(), b.len(), s) as u64 } } }
 pub fn h_gxhash(b: &[u8], s: u64) -> u64 { gxhash::gxhash64(b, s as i64) }
 pub fn h_rapidhash(b: &[u8], s: u64) -> u64 { rapidhash::v3::rapidhash_v3_seeded(b, &rapidhash::v3::RapidSecrets::seed_cpp(s)) }
 pub fn h_xxh3(b: &[u8], s: u64) -> u64 { xxhash_rust::xxh3::xxh3_64_with_seed(b, s) }
@@ -81,21 +81,48 @@ pub fn h_ahash(b: &[u8], s: u64) -> u64 {
     h.finish()
 }
 
+// lanehash: the dispatched function and its kernels per width.
+pub fn h_lanehash(b: &[u8], s: u64) -> u64 { lanehash::hash64(b, s) }
+/// The scalar reference: the short path and the spec's long path (no SIMD).
+pub fn h_lanehash_scalar(b: &[u8], s: u64) -> u64 { lanehash::spec::hash64(b, s) }
+#[cfg(target_arch = "x86_64")]
+fn width(b: &[u8], s: u64, h: lanehash::dispatch::Hash64) -> u64 {
+    use lanehash::spec;
+    if b.len() <= spec::SHORT_MAX {
+        return lanehash::short::short64(b, s);
+    }
+    unsafe { h(b.as_ptr(), b.len(), spec::ks(s)) }
+}
+#[cfg(target_arch = "x86_64")]
+pub fn h_lanehash_sse2(b: &[u8], s: u64) -> u64 { width(b, s, lanehash::x86::sse2::hash64) }
+#[cfg(target_arch = "x86_64")]
+pub fn h_lanehash_avx2(b: &[u8], s: u64) -> u64 { width(b, s, lanehash::x86::avx2::hash64) }
+#[cfg(target_arch = "x86_64")]
+pub fn h_lanehash_avx512(b: &[u8], s: u64) -> u64 { width(b, s, lanehash::x86::avx512::hash64) }
+
 pub fn hashes() -> Vec<(&'static str, HashFn)> {
     vec![
-        ("lanehash", h_lanehash),
-        ("lanehash-spec", h_lanehash_spec),
-        ("lanehash-soft", h_lanehash_soft),
-        ("lanehash-aesni", h_lanehash_aesni),
-        ("lanehash-vaes256", h_lanehash_vaes256),
-        ("lanehash-direct", h_lanehash_direct),
-        ("lanehash-stream", h_lanehash_stream),
-        ("lanehash-stream4k", h_lanehash_stream4k),
+        ("aes", h_aes),
+        ("aes-spec", h_aes_spec),
+        ("aes-soft", h_aes_soft),
+        ("aes-aesni", h_aes_aesni),
+        ("aes-vaes256", h_aes_vaes256),
+        ("aes-direct", h_aes_direct),
+        ("aes-stream", h_aes_stream),
+        ("aes-stream4k", h_aes_stream4k),
         (if cfg!(feature = "hybrid") { "gxhash-hybrid" } else { "gxhash" }, h_gxhash),
         ("rapidhash-v3", h_rapidhash),
         ("xxh3", h_xxh3),
         ("foldhash", h_foldhash),
         ("ahash", h_ahash),
+        ("lanehash", h_lanehash),
+        ("lanehash-scalar", h_lanehash_scalar),
+        #[cfg(target_arch = "x86_64")]
+        ("lanehash-sse2", h_lanehash_sse2),
+        #[cfg(target_arch = "x86_64")]
+        ("lanehash-avx2", h_lanehash_avx2),
+        #[cfg(target_arch = "x86_64")]
+        ("lanehash-avx512", h_lanehash_avx512),
     ]
 }
 

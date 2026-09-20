@@ -1,7 +1,6 @@
-//! `LaneHasher` / `FixedState` / `RandomState`: the map hasher is a different
-//! function from `hash64`, so it gets its own checks:
-//! disambiguation of write sequences, determinism and seeding, avalanche through
-//! `hash_one`, spread of sequential keys, and map round trips.
+//! The map hasher is a different function from `hash64`: write-sequence
+//! disambiguation, determinism and seeding, avalanche, spread of sequential keys, map
+//! round trips.
 use std::collections::{HashMap, HashSet};
 use std::hash::{BuildHasher, Hasher};
 
@@ -12,11 +11,11 @@ fn rng(s: &mut u64) -> u64 {
     *s
 }
 
-/// Different write sequences with the same bytes hash differently: every `write`
-/// mixes its length, and integer writes chain in order.
+/// Same bytes, different write sequences, different hashes: every `write` mixes its
+/// length and integer writes chain in order.
 #[test]
 fn write_sequences_are_disambiguated() {
-    let bh = lanehash::FixedState::new(1);
+    let bh = lanehash::aes::FixedState::new(1);
     let seq = |writes: &[&[u8]]| {
         let mut h = bh.build_hasher();
         for w in writes {
@@ -52,13 +51,13 @@ fn write_sequences_are_disambiguated() {
 #[test]
 fn seeding_is_deterministic() {
     let key = "the quick brown fox";
-    assert_eq!(lanehash::FixedState::new(7).hash_one(key), lanehash::FixedState::new(7).hash_one(key));
-    assert_eq!(lanehash::FixedState::default().hash_one(key), lanehash::FixedState::new(0).hash_one(key));
+    assert_eq!(lanehash::aes::FixedState::new(7).hash_one(key), lanehash::aes::FixedState::new(7).hash_one(key));
+    assert_eq!(lanehash::aes::FixedState::default().hash_one(key), lanehash::aes::FixedState::new(0).hash_one(key));
     let mut seen = HashSet::new();
     for seed in (0..256u64).chain([u64::MAX, 1 << 63]) {
-        assert!(seen.insert(lanehash::FixedState::new(seed).hash_one(key)), "seed {seed} collides");
+        assert!(seen.insert(lanehash::aes::FixedState::new(seed).hash_one(key)), "seed {seed} collides");
     }
-    let bh = lanehash::FixedState::new(3);
+    let bh = lanehash::aes::FixedState::new(3);
     let mut a = bh.build_hasher();
     a.write(b"part one, ");
     let mut b = a.clone();
@@ -66,8 +65,8 @@ fn seeding_is_deterministic() {
     b.write(b"part two");
     assert_eq!(a.finish(), b.finish());
 
-    assert_eq!(lanehash::RandomState::new().hash_one(key), lanehash::RandomState::new().hash_one(key));
-    assert_eq!(lanehash::RandomState::default().hash_one(key), lanehash::RandomState::new().hash_one(key));
+    assert_eq!(lanehash::aes::RandomState::new().hash_one(key), lanehash::aes::RandomState::new().hash_one(key));
+    assert_eq!(lanehash::aes::RandomState::default().hash_one(key), lanehash::aes::RandomState::new().hash_one(key));
 }
 
 /// Every input bit of a byte-string key changes the hash (all three write paths:
@@ -79,7 +78,7 @@ fn flip_bit_trial() {
     let mut s = 0x5be0_cd19_137e_2179u64;
     let (mut flips, mut trials) = (0u64, 0u64);
     for seed in [0u64, 1, 0x9E37_79B9_7F4A_7C15] {
-        let bh = lanehash::FixedState::new(seed);
+        let bh = lanehash::aes::FixedState::new(seed);
         for len in 0..=200usize {
             let mut data = vec![0u8; len];
             for b in data.iter_mut() {
@@ -110,7 +109,7 @@ fn flip_bit_trial() {
 #[cfg_attr(miri, ignore)] // statistical, ~1000x slower under Miri
 #[test]
 fn sequential_keys_spread() {
-    let bh = lanehash::FixedState::new(0);
+    let bh = lanehash::aes::FixedState::new(0);
     let ints: Vec<u64> = (0..65_536u64).map(|i| bh.hash_one(i)).collect();
     let strs: Vec<u64> = (0..65_536u64).map(|i| bh.hash_one(format!("k{i}"))).collect();
     for (name, hs) in [("u64", &ints), ("str", &strs)] {
@@ -123,7 +122,7 @@ fn sequential_keys_spread() {
 #[cfg_attr(miri, ignore)] // 100k inserts, ~1000x slower under Miri
 #[test]
 fn maps_round_trip() {
-    let mut m: HashMap<u64, u64, lanehash::FixedState> = HashMap::default();
+    let mut m: HashMap<u64, u64, lanehash::aes::FixedState> = HashMap::default();
     for i in 0..100_000u64 {
         m.insert(i.wrapping_mul(0x9E37_79B9_7F4A_7C15), i);
     }
@@ -136,7 +135,7 @@ fn maps_round_trip() {
     }
     assert_eq!(m.len(), 50_000);
 
-    let mut set: HashSet<Vec<u8>, lanehash::RandomState> = HashSet::default();
+    let mut set: HashSet<Vec<u8>, lanehash::aes::RandomState> = HashSet::default();
     for len in 0..=2000usize {
         assert!(set.insert(vec![0u8; len]));
         assert!(set.insert(vec![0xffu8; len]) || len == 0);
@@ -148,8 +147,8 @@ fn maps_round_trip() {
 #[test]
 fn types_are_send_and_sync() {
     fn check<T: Send + Sync>() {}
-    check::<lanehash::Stream>();
-    check::<lanehash::LaneHasher>();
-    check::<lanehash::FixedState>();
-    check::<lanehash::RandomState>();
+    check::<lanehash::aes::Stream>();
+    check::<lanehash::aes::LaneHasher>();
+    check::<lanehash::aes::FixedState>();
+    check::<lanehash::aes::RandomState>();
 }

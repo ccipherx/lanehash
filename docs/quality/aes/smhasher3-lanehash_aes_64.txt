@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
---- Testing lanehash-64 "lanehash prototype, 64-bit (low half of the 128-bit state)"
+--- Testing lanehash-aes-64 "lanehash_aes (AES lanes), 64-bit (low half of the 128-bit state)"
 
 [[[ Sanity Tests ]]]
 
@@ -2448,7 +2448,7 @@ Testing distribution   (any   8..18 bits) - Worst bias is 16 bits at bit  15:   
             0     0     0     0     0     0     0     0     0     0     0     0     0
 
 ----------------------------------------------------------------------------------------------
-Summary for: lanehash-64
+Summary for: lanehash-aes-64
 Overall result: pass            ( 188 / 188 passed)
 
 ----------------------------------------------------------------------------------------------

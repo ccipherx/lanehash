@@ -3,20 +3,21 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     let len: usize = args.get(1).map(|s| s.parse().unwrap()).unwrap_or(96);
     let seed: u64 = args.get(2).map(|s| s.parse().unwrap()).unwrap_or(0);
+    let hf: fn(&[u8], u64) -> u64 = if args.get(3).map_or(false, |s| s == "aes") { lanehash::aes::hash64 } else { lanehash::hash64 }; // third argument "aes": the AES function
     let nb = len * 8;
     let mut key = vec![0u8; len];
     let mut v: Vec<(u64, u32, u32, u32)> = Vec::with_capacity(nb * nb * nb / 6 + nb * nb + nb + 1);
     let flip = |key: &mut [u8], i: usize| key[i / 8] ^= 1 << (i % 8);
-    v.push((lanehash::hash64(&key, seed), u32::MAX, u32::MAX, u32::MAX));
+    v.push((hf(&key, seed), u32::MAX, u32::MAX, u32::MAX));
     for i in 0..nb {
         flip(&mut key, i);
-        v.push((lanehash::hash64(&key, seed), i as u32, u32::MAX, u32::MAX));
+        v.push((hf(&key, seed), i as u32, u32::MAX, u32::MAX));
         for j in i + 1..nb {
             flip(&mut key, j);
-            v.push((lanehash::hash64(&key, seed), i as u32, j as u32, u32::MAX));
+            v.push((hf(&key, seed), i as u32, j as u32, u32::MAX));
             for k in j + 1..nb {
                 flip(&mut key, k);
-                v.push((lanehash::hash64(&key, seed), i as u32, j as u32, k as u32));
+                v.push((hf(&key, seed), i as u32, j as u32, k as u32));
                 flip(&mut key, k);
             }
             flip(&mut key, j);

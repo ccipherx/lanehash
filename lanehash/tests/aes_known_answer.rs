@@ -1,11 +1,8 @@
-//! The output is frozen (0.1): pin it. `tests/vectors.rs` only checks that the
-//! backends agree with the spec, so a change to `constants.rs` or `lanes.rs` would
-//! move every backend together and pass. These tests catch that.
+//! Pins the frozen output: `aes_vectors.rs` only checks that the backends agree with
+//! the spec, so a change to `constants.rs` or `lanes.rs` would pass there.
 
-/// SMHasher's verification procedure (rurban `KeysetTest.cpp`, `VerificationTest`):
-/// hash `{0}, {0,1}, ..` of length `i` with seed `256 - i`, hash the concatenated
-/// results with seed 0, take the low 32 bits. Both harness shims are registered with
-/// these values (`third_party/smhasher/main.cpp`).
+/// SMHasher's verification value: hash `key[..i]` (`key[i] = i`) under seed `256 - i`,
+/// hash the concatenated results under seed 0, low 32 bits.
 #[test]
 fn smhasher_verification_values() {
     let mut key = [0u8; 256];
@@ -14,18 +11,16 @@ fn smhasher_verification_values() {
     for i in 0..256 {
         key[i] = i as u8;
         let seed = 256 - i as u64;
-        h64[8 * i..8 * i + 8].copy_from_slice(&lanehash::hash64(&key[..i], seed).to_le_bytes());
-        h128[16 * i..16 * i + 16].copy_from_slice(&lanehash::hash128(&key[..i], seed).to_le_bytes());
+        h64[8 * i..8 * i + 8].copy_from_slice(&lanehash::aes::hash64(&key[..i], seed).to_le_bytes());
+        h128[16 * i..16 * i + 16].copy_from_slice(&lanehash::aes::hash128(&key[..i], seed).to_le_bytes());
     }
-    assert_eq!(lanehash::hash64(&h64, 0) as u32, 0x9FF6_0BEF, "64-bit verification value");
-    assert_eq!(lanehash::hash128(&h128, 0) as u32, 0x1A79_672D, "128-bit verification value");
+    assert_eq!(lanehash::aes::hash64(&h64, 0) as u32, 0x9FF6_0BEF, "64-bit verification value");
+    assert_eq!(lanehash::aes::hash128(&h128, 0) as u32, 0x1A79_672D, "128-bit verification value");
 }
 
-/// Known answers across every regime: short classes (<=16, <=32, <=64), L4, L8, L16,
-/// the prefetch threshold (64 KiB) and the EVEX sandwich threshold (512 KiB). The
-/// verification values above cover only 0..=255 and 2048/4096 bytes. Byte `i` of the
-/// input is `(i * 31 + 7) as u8` (the pattern of `tests/guard_page.rs`). Generated
-/// from the crate at 0.1.0 (commit 7743982), after the verification values matched.
+/// Known answers across every regime: the short classes, L4, L8, L16, the prefetch
+/// threshold (64 KiB) and the EVEX sandwich threshold (512 KiB). Input byte `i` is
+/// `(i * 31 + 7) as u8`. Generated at 0.1.0 (commit 7743982).
 #[test]
 fn known_answers() {
     const KAT: &[(usize, u64, u128)] = &[
@@ -67,22 +62,21 @@ fn known_answers() {
     let buf: Vec<u8> = (0..(1 << 19) + 1).map(|i| (i * 31 + 7) as u8).collect();
     for &(len, seed, want) in KAT {
         if cfg!(miri) && len >= 65_536 {
-            continue; // Miri is ~1000x slower; the L16 regime is still covered by 2048 and 4097
+            continue; // Miri: L16 is still covered by 2048 and 4097
         }
         let bytes = &buf[..len];
-        assert_eq!(lanehash::hash128(bytes, seed), want, "hash128 len={len} seed={seed:#x}");
-        assert_eq!(lanehash::hash64(bytes, seed), want as u64, "hash64 len={len} seed={seed:#x}");
-        assert_eq!(lanehash::spec::hash128_spec(bytes, seed), want, "spec len={len} seed={seed:#x}");
-        assert_eq!(lanehash::soft::hash128_soft(bytes, seed), want, "soft len={len} seed={seed:#x}");
-        let mut st = lanehash::Stream::new(seed);
+        assert_eq!(lanehash::aes::hash128(bytes, seed), want, "hash128 len={len} seed={seed:#x}");
+        assert_eq!(lanehash::aes::hash64(bytes, seed), want as u64, "hash64 len={len} seed={seed:#x}");
+        assert_eq!(lanehash::aes::spec::hash128_spec(bytes, seed), want, "spec len={len} seed={seed:#x}");
+        assert_eq!(lanehash::aes::soft::hash128_soft(bytes, seed), want, "soft len={len} seed={seed:#x}");
+        let mut st = lanehash::aes::Stream::new(seed);
         st.update(bytes);
         assert_eq!(st.finish128(), want, "stream len={len} seed={seed:#x}");
     }
 }
 
-/// `short::secrets`: the top bit is forced (no secret is 0 or 1, so no multiply
-/// operand degenerates) and the eight secrets are distinct, including at the seed
-/// where the derivation's non-linear step is zero (`seed ^ K0 == 0`).
+/// `short::secrets`: top bit forced (no secret is 0 or 1), all eight distinct, also at
+/// the seed where the non-linear step is zero (`seed ^ K0 == 0`).
 #[test]
 fn short_secrets_are_well_formed() {
     let k0 = u64::from_le_bytes(lanehash::constants::C[27][..8].try_into().unwrap());
@@ -95,7 +89,7 @@ fn short_secrets_are_well_formed() {
         s
     }));
     for seed in seeds {
-        let k = lanehash::short::secrets(seed);
+        let k = lanehash::aes::short::secrets(seed);
         for (j, &kj) in k.iter().enumerate() {
             assert!(kj >> 63 == 1, "seed={seed:#x} k[{j}]={kj:#x} top bit clear");
         }

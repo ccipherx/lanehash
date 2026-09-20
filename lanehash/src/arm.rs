@@ -1,182 +1,118 @@
-//! aarch64 backend: NEON + Armv8 AES (128-bit lanes).
-//!
-//! Round mapping: `vaeseq_u8(x, k)` is `SR(SB(x ^ k))` and
-//! `vaesmcq_u8` is `MC`, so the spec round `R(x, k) = MC(SR(SB(x))) ^ k` (x86
-//! `AESENC`) is `vaesmcq_u8(vaeseq_u8(x, 0)) ^ k`. LLVM folds `vaeseq_u8(a ^ b, 0)`
-//! into `vaeseq_u8(a, b)`, so the sandwich absorb `t = R(t ^ b, b)` becomes
-//! `AESE t, b; AESMC; EOR t, b` (one fused pair plus the trailing XOR), and the
-//! differential chain `x = R(x, d)` becomes `AESE x, d; AESMC` (one fused pair,
-//! the XOR `d = b_prev ^ b` off the chain: the "shifted" form).
-use crate::constants::C;
-use crate::lanes::{Blk, Lanes, State};
+//! aarch64 NEON kernels of the long path: `uzp1`/`uzp2` pair the even and odd dwords
+//! of two registers, `umlal`/`umlal2` multiply-accumulate them onto `x`. Compile-checked
+//! only (no hardware available).
+use super::spec::{finish_lanes, Merged, Words, BLOCK, CHAINS, CT, Q, STRIPE};
 use core::arch::aarch64::*;
 
-#[derive(Clone, Copy)]
-pub struct Neon(pub uint8x16_t);
-
-impl Blk for Neon {
-    #[inline(always)]
-    fn from_bytes(b: &[u8; 16]) -> Self {
-        Neon(unsafe { vld1q_u8(b.as_ptr()) })
-    }
-    #[inline(always)]
-    fn bcast(v: u64) -> Self {
-        Neon(unsafe { vreinterpretq_u8_u64(vdupq_n_u64(v)) })
-    }
-    #[inline(always)]
-    fn round(self, k: Self) -> Self {
-        Neon(unsafe { veorq_u8(vaesmcq_u8(vaeseq_u8(self.0, vdupq_n_u8(0))), k.0) })
-    }
-    #[inline(always)]
-    fn xor(self, o: Self) -> Self {
-        Neon(unsafe { veorq_u8(self.0, o.0) })
-    }
-    #[inline(always)]
-    fn to_u128(self) -> u128 {
-        let mut o = [0u8; 16];
-        unsafe { vst1q_u8(o.as_mut_ptr(), self.0) };
-        u128::from_le_bytes(o)
-    }
-}
-
-impl Lanes for Neon {
-    type B = Neon;
-    const W: usize = 1;
-    #[inline(always)]
-    unsafe fn load(p: *const u8) -> Self {
-        Neon(vld1q_u8(p))
-    }
-    #[inline(always)]
-    fn init(seed: u64, first_lane: usize) -> Self {
-        <Self as Blk>::xor(Self::bcast(seed), Self::from_bytes(&C[first_lane]))
-    }
-    #[inline(always)]
-    fn round(self, k: Self) -> Self {
-        Blk::round(self, k)
-    }
-    #[inline(always)]
-    fn xor(self, o: Self) -> Self {
-        <Self as Blk>::xor(self, o)
-    }
-    #[inline(always)]
-    fn splat(b: &[u8; 16]) -> Self {
-        <Self as Blk>::from_bytes(b)
-    }
-    #[inline(always)]
-    fn zero() -> Self {
-        Neon(unsafe { vdupq_n_u8(0) })
-    }
-    #[inline(always)]
-    unsafe fn diff_partial(x: Self, prev: Self, _p: *const u8, _count: usize) -> (Self, Self) {
-        debug_assert!(false);
-        (x, prev)
-    }
-    #[inline(always)]
-    fn add(self, o: Self) -> Self {
-        Neon(unsafe { vreinterpretq_u8_u64(vaddq_u64(vreinterpretq_u64_u8(self.0), vreinterpretq_u64_u8(o.0))) })
-    }
-    #[inline(always)]
-    fn fold(self) -> Self {
-        self
-    }
-    #[inline(always)]
-    unsafe fn round_partial(self, _p: *const u8, _count: usize) -> Self {
-        debug_assert!(false);
-        self
-    }
-    #[inline(always)]
-    fn store(self, out: &mut [[u8; 16]]) {
-        unsafe { vst1q_u8(out[0].as_mut_ptr(), self.0) }
-    }
-    #[inline(always)]
-    fn from_blocks(inp: &[[u8; 16]]) -> Self {
-        Self::from_bytes(&inp[0])
-    }
-}
-
-/// One step of `absorb_shifted`: `u = MCSRSB(u ^ kp ^ b); kp = b` for `L` blocks at `p`.
+/// `x = a ^ w; x + lo32(x) * hi32(x)` on a register pair.
 #[inline(always)]
-unsafe fn step_shifted<const L: usize>(u: &mut [uint8x16_t; L], kp: &mut [uint8x16_t; L], p: *const u8) {
-    for i in 0..L {
-        let b = vld1q_u8(p.add(16 * i));
-        u[i] = vaesmcq_u8(vaeseq_u8(u[i], veorq_u8(kp[i], b)));
-        kp[i] = b;
+unsafe fn step2(a0: uint64x2_t, a1: uint64x2_t, w0: uint64x2_t, w1: uint64x2_t) -> (uint64x2_t, uint64x2_t) {
+    let (x0, x1) = (veorq_u64(a0, w0), veorq_u64(a1, w1));
+    let e = vuzp1q_u32(vreinterpretq_u32_u64(x0), vreinterpretq_u32_u64(x1));
+    let o = vuzp2q_u32(vreinterpretq_u32_u64(x0), vreinterpretq_u32_u64(x1));
+    (vmlal_u32(x0, vget_low_u32(e), vget_low_u32(o)), vmlal_high_u32(x1, e, o))
+}
+/// One stripe at `src` (words XORed with `nv`) into chain `c` of `st`.
+#[inline(always)]
+unsafe fn stripe(st: *mut u64, c: usize, src: *const u8, nv: uint64x2_t) {
+    let sp = st.add(8 * c);
+    for h in 0..2 {
+        let w0 = veorq_u64(vld1q_u64(src.add(h * 32) as *const u64), nv);
+        let w1 = veorq_u64(vld1q_u64(src.add(h * 32 + 16) as *const u64), nv);
+        let (a0, a1) = step2(vld1q_u64(sp.add(4 * h)), vld1q_u64(sp.add(4 * h + 2)), w0, w1);
+        vst1q_u64(sp.add(4 * h), a0);
+        vst1q_u64(sp.add(4 * h + 2), a1);
     }
 }
-
-/// `State::absorb` in the shifted state described above: `u` is the
-/// lane before its pending key XOR (`t = u ^ kp`), so `t = R(t ^ b, b)` is
-/// `u = AESMC(AESE(u, kp ^ b)); kp = b`: one fused pair on the chain, the XOR
-/// `kp ^ b = b_{k-1} ^ b_k` off it (the differential chain). The
-/// generic `lanes_hash_diff` would not compile to this: LLVM folds
-/// `AESE(x ^ k, 0)` into `AESE(x, k)` only within a basic block, not across
-/// the loop's phi. Two steps per iteration make `kp = b` a register rename.
 #[inline(always)]
-unsafe fn absorb_shifted<const L: usize>(t: &mut [Neon; L], mut p: *const u8, nblocks: usize) {
-    let mut u = [vdupq_n_u8(0); L];
-    let mut kp = [vdupq_n_u8(0); L];
-    for i in 0..L {
-        u[i] = t[i].0;
-    }
-    let full = nblocks / L;
-    for _ in 0..full / 2 {
-        step_shifted(&mut u, &mut kp, p);
-        step_shifted(&mut u, &mut kp, p.add(16 * L));
-        p = p.add(32 * L);
-    }
-    if full % 2 == 1 {
-        step_shifted(&mut u, &mut kp, p);
-        p = p.add(16 * L);
-    }
-    let r = nblocks % L;
-    for i in 0..L {
-        if i < r {
-            let b = vld1q_u8(p.add(16 * i));
-            u[i] = vaesmcq_u8(vaeseq_u8(u[i], veorq_u8(kp[i], b)));
-            kp[i] = b;
+unsafe fn merge(st: *const u64, used: usize) -> Merged {
+    let q: [uint64x2_t; 4] = core::array::from_fn(|r| vld1q_u64(Q.as_ptr().add(2 * r)));
+    let mut mv = [vdupq_n_u64(0); 4];
+    for c in 0..used {
+        for h in 0..2 {
+            let (b0, b1) = step2(vld1q_u64(st.add(8 * c + 4 * h)), vld1q_u64(st.add(8 * c + 4 * h + 2)), q[2 * h], q[2 * h + 1]);
+            mv[2 * h] = veorq_u64(mv[2 * h], b0);
+            mv[2 * h + 1] = veorq_u64(mv[2 * h + 1], b1);
         }
     }
-    for i in 0..L {
-        t[i] = Neon(veorq_u8(u[i], kp[i]));
+    let mut out = Merged([0u64; 8]);
+    for r in 0..4 {
+        vst1q_u64(out.0.as_mut_ptr().add(2 * r), mv[r]);
+    }
+    out
+}
+
+/// Merged lanes of `n >= 65` bytes at `p`, inlined into the entry points (see x86.rs).
+#[inline(always)]
+unsafe fn lanes(p: *const u8, n: usize, ks: u64) -> Merged {
+    let m = (n - 1) / STRIPE;
+    let ksv = vdupq_n_u64(ks);
+    if m < CHAINS {
+        // every chain sees one stripe: stripe step and merge step in registers
+        let q: [uint64x2_t; 4] = core::array::from_fn(|r| vld1q_u64(Q.as_ptr().add(2 * r)));
+        let mut mv = [vdupq_n_u64(0); 4];
+        let mut one = |c: usize, src: *const u8, nv: uint64x2_t| {
+            for h in 0..2 {
+                let w0 = veorq_u64(vld1q_u64(src.add(h * 32) as *const u64), nv);
+                let w1 = veorq_u64(vld1q_u64(src.add(h * 32 + 16) as *const u64), nv);
+                let a0 = vaddq_u64(vld1q_u64(CT.as_ptr().add(8 * c + 4 * h)), ksv);
+                let a1 = vaddq_u64(vld1q_u64(CT.as_ptr().add(8 * c + 4 * h + 2)), ksv);
+                let (a0, a1) = step2(a0, a1, w0, w1);
+                let (b0, b1) = step2(a0, a1, q[2 * h], q[2 * h + 1]);
+                mv[2 * h] = veorq_u64(mv[2 * h], b0);
+                mv[2 * h + 1] = veorq_u64(mv[2 * h + 1], b1);
+            }
+        };
+        for s in 0..m {
+            one(s, p.add(s * 64), vdupq_n_u64(0));
+        }
+        one(m, p.add(n - 64), vdupq_n_u64(n as u64));
+        let mut out = Merged([0u64; 8]);
+        for r in 0..4 {
+            vst1q_u64(out.0.as_mut_ptr().add(2 * r), mv[r]);
+        }
+        return out;
+    }
+    let mut w = Words([0u64; 64]);
+    let st = w.0.as_mut_ptr();
+    for j in 0..32 {
+        vst1q_u64(st.add(2 * j), vaddq_u64(vld1q_u64(CT.as_ptr().add(2 * j)), ksv));
+    }
+    let z = vdupq_n_u64(0);
+    let mut s = 0;
+    while s + CHAINS <= m {
+        for c in 0..CHAINS {
+            stripe(st, c, p.add((s + c) * 64), z);
+        }
+        s += CHAINS;
+    }
+    while s < m {
+        stripe(st, s % CHAINS, p.add(s * 64), z);
+        s += 1;
+    }
+    stripe(st, m % CHAINS, p.add(n - 64), vdupq_n_u64(n as u64));
+    merge(st, CHAINS)
+}
+
+/// Streaming: absorb `nblocks` whole leading blocks at `p` into `st`.
+#[target_feature(enable = "neon")]
+pub unsafe fn absorb(st: &mut Words, p: *const u8, nblocks: usize) {
+    let z = vdupq_n_u64(0);
+    for b in 0..nblocks {
+        for c in 0..CHAINS {
+            stripe(st.0.as_mut_ptr(), c, p.add(b * BLOCK + c * 64), z);
+        }
     }
 }
 
-/// L = 8 runs the shifted chain (8 states + 2 x 8 blocks in registers). L = 16
-/// keeps the sandwich form: its 16 chains already cover the pair + EOR latency,
-/// and the shifted form would need 48 registers.
-/// # Safety: requires NEON + AES and `len > 64` bytes readable at `p`.
-#[target_feature(enable = "aes,neon")]
-pub unsafe fn hash128_neon(p: *const u8, len: usize, seed: u64) -> u128 {
-    if len <= crate::L4_MAX {
-        crate::lanes::lanes_hash_l4::<Neon, 4>(p, len, seed)
-    } else if len <= crate::L8_MAX {
-        let mut st = State::<Neon, 8, 8>::new(seed);
-        absorb_shifted(&mut st.t, p, (len + 15) / 16 - 8);
-        st.finish(p.add(len - 128), len)
-    } else {
-        crate::lanes::lanes_hash::<Neon, 16, 16>(p, len, seed)
+/// Streaming: the 128-bit hash from `st` (`spec::finish`).
+#[target_feature(enable = "neon")]
+pub unsafe fn finish(st: &Words, leading: *const u8, r: usize, closing: *const u8, n: usize) -> Merged {
+    let mut w = Words(st.0);
+    let z = vdupq_n_u64(0);
+    for c in 0..r {
+        stripe(w.0.as_mut_ptr(), c, leading.add(c * 64), z);
     }
-}
-
-/// # Safety: NEON + AES; every input `65..=256` bytes readable.
-#[target_feature(enable = "aes,neon")]
-pub unsafe fn batch4_l4_neon(ps: &[*const u8; 4], lens: &[usize; 4], seed: u64) -> [u128; 4] {
-    crate::lanes::lanes_hash_batch4::<Neon, 4, 4>(ps, lens, seed)
-}
-/// # Safety: NEON + AES; every input `257..=1024` bytes readable.
-#[target_feature(enable = "aes,neon")]
-pub unsafe fn batch2_l8_neon(ps: &[*const u8; 2], lens: &[usize; 2], seed: u64) -> [u128; 2] {
-    crate::lanes::lanes_hash_batch2::<Neon, 8, 8>(ps, lens, seed)
-}
-
-/// # Safety: NEON + AES; `nblocks*16` bytes readable at `p`; `nblocks` history as in `State::absorb`.
-#[target_feature(enable = "aes,neon")]
-pub unsafe fn absorb16_neon(state: &mut [[u8; 16]; 16], p: *const u8, nblocks: usize) {
-    let mut st = State::<Neon, 16, 16>::from_blocks(state);
-    st.absorb(p, nblocks);
-    st.store(state);
-}
-#[target_feature(enable = "aes,neon")]
-pub unsafe fn finish16_neon(state: &[[u8; 16]; 16], c: *const u8, len: usize) -> u128 {
-    State::<Neon, 16, 16>::from_blocks(state).finish(c, len)
+    stripe(w.0.as_mut_ptr(), r % CHAINS, closing, vdupq_n_u64(n as u64));
+    finish_lanes::<true>(&merge(w.0.as_ptr(), ((n - 1) / STRIPE + 1).min(CHAINS)), ks, n)
 }

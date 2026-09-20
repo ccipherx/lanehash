@@ -181,7 +181,7 @@ fn call_single(f: HashFn, bufs: &[&[u8]], seed: u64) -> u64 {
 }
 fn call_batch(_f: HashFn, bufs: &[&[u8]], seed: u64) -> u64 {
     let mut out = [0u64; 16];
-    lanehash::hash64_batch(bufs, seed, &mut out[..bufs.len()]);
+    lanehash::aes::hash64_batch(bufs, seed, &mut out[..bufs.len()]);
     out[0] ^ out[bufs.len() - 1]
 }
 
@@ -245,7 +245,7 @@ fn main() {
     let sizes: Vec<usize> = args.iter().position(|a| a == "--sizes").map(|i| args[i + 1].split(',').map(|s| s.parse().unwrap()).collect()).unwrap_or_else(|| vec![16, 64, 128, 256, 1024, 4096, 65536, 1 << 20]);
     let align: usize = args.iter().position(|a| a == "--align").map(|i| args[i + 1].parse().unwrap()).unwrap_or(16);
     let dump: Option<String> = args.iter().position(|a| a == "--dump").map(|i| args[i + 1].clone());
-    // --batch K: trace lanehash::hash64_batch over K distinct buffers; counts are divided by K
+    // --batch K: trace lanehash::aes::hash64_batch over K distinct buffers; counts are divided by K
     let batch: usize = args.iter().position(|a| a == "--batch").map(|i| args[i + 1].parse().unwrap()).unwrap_or(0);
     let mut hs = hashes();
     if let Some(o) = &only {
@@ -276,6 +276,7 @@ fn main() {
         }
         println!("# per-lookup instruction mix, HashMap<&str,u32>, 16 dictionary words (lengths {:?}); harness overhead of {} instructions subtracted once per 16 lookups", probe.iter().map(|w| w.len()).collect::<Vec<_>>(), overhead.instr);
         run("lanehash", lanehash::FixedState::new(42), &words, &probe, &dis, &dump, &overhead);
+        run("aes", lanehash::aes::FixedState::new(42), &words, &probe, &dis, &dump, &overhead);
         run("foldhash-fast", foldhash::fast::FixedState::with_seed(42), &words, &probe, &dis, &dump, &overhead);
         run("gxhash", gxhash::GxBuildHasher::with_seed(42), &words, &probe, &dis, &dump, &overhead);
         run("rapidhash-fast", rapidhash::fast::RandomState::default(), &words, &probe, &dis, &dump, &overhead);
@@ -290,7 +291,7 @@ fn main() {
     println!("# icount: exact per-call instruction mix by ptrace single-step (segment difference); commit={} align={align} core={} batch={batch}; harness overhead subtracted: {} instructions per call (empty function: loop, indirect call, ret)", bench::COMMIT, bench::current_cpu(), overhead.instr);
     println!("# hash,size,instr,loads,stores,aes,branches,vec_stack_movs,prefetch,rep_iters");
     if batch > 0 {
-        hs = vec![(Box::leak(format!("lanehash-batch{batch}").into_boxed_str()), bench::h_lanehash as HashFn)];
+        hs = vec![(Box::leak(format!("aes-batch{batch}").into_boxed_str()), bench::h_aes as HashFn)];
     }
     for &size in &sizes {
         let bufs: Vec<&[u8]> = vs.iter().zip(&offs).map(|(v, &o)| &v[o..o + size]).collect();

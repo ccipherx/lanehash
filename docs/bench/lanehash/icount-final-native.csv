@@ -1,0 +1,98 @@
+# icount: exact per-call instruction mix by ptrace single-step (segment difference); commit=1dc417cf49-dirty align=16 core=3 batch=0; harness overhead subtracted: 26 instructions per call (empty function: loop, indirect call, ret)
+# hash,size,instr,loads,stores,aes,branches,vec_stack_movs,prefetch,rep_iters
+rapidhash-v3,4,35,4,3,0,4,2,0,0
+# note: rapidhash-v3 4: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+xxh3,4,29,2,0,0,3,0,0,0
+# note: xxh3 4: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2,4,31,2,0,0,6,0,0,0
+# note: lh2 4: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-sse2,4,44,6,4,0,9,0,0,0
+# note: lh2k-sse2 4: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-avx2,4,31,2,0,0,6,0,0,0
+# note: lh2k-avx2 4: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-avx512,4,31,2,0,0,6,0,0,0
+# note: lh2k-avx512 4: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+rapidhash-v3,16,35,4,3,0,4,2,0,0
+# note: rapidhash-v3 16: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+xxh3,16,24,2,0,0,3,0,0,0
+# note: xxh3 16: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2,16,27,2,0,0,5,0,0,0
+# note: lh2 16: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-sse2,16,40,6,4,0,8,0,0,0
+# note: lh2k-sse2 16: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-avx2,16,27,2,0,0,5,0,0,0
+# note: lh2k-avx2 16: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-avx512,16,27,2,0,0,5,0,0,0
+# note: lh2k-avx512 16: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+rapidhash-v3,64,77,20,10,0,7,2,0,0
+# note: rapidhash-v3 64: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+xxh3,64,57,8,0,0,4,0,0,0
+# note: xxh3 64: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2,64,65,14,6,0,4,0,0,0
+# note: lh2 64: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-sse2,64,77,18,10,0,6,0,0,0
+# note: lh2k-sse2 64: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-avx2,64,65,14,6,0,4,0,0,0
+# note: lh2k-avx2 64: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-avx512,64,64,14,6,0,3,0,0,0
+# note: lh2k-avx512 64: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+rapidhash-v3,128,114,33,10,0,7,2,0,0
+# note: rapidhash-v3 128: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+xxh3,128,101,16,0,0,5,0,0,0
+# note: xxh3 128: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2,128,112,17,2,0,8,0,0,0
+# note: lh2 128: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-sse2,128,157,31,4,0,4,0,0,0
+# note: lh2k-sse2 128: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-avx2,128,98,16,2,0,4,0,0,0
+# note: lh2k-avx2 128: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-avx512,128,108,15,2,0,7,0,0,0
+# note: lh2k-avx512 128: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+rapidhash-v3,256,194,64,17,0,10,2,0,0
+# note: rapidhash-v3 256: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+xxh3,256,149,19,3,0,13,5,0,0
+# note: xxh3 256: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2,256,162,27,3,0,9,0,0,0
+# note: lh2 256: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-sse2,256,243,47,4,0,6,0,0,0
+# note: lh2k-sse2 256: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-avx2,256,142,28,2,0,6,0,0,0
+# note: lh2k-avx2 256: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-avx512,256,158,25,3,0,8,0,0,0
+# note: lh2k-avx512 256: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+rapidhash-v3,1024,494,208,17,0,12,2,0,0
+# note: rapidhash-v3 1024: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+xxh3,1024,253,43,4,0,18,5,0,0
+# note: xxh3 1024: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2,1024,200,32,3,0,15,0,0,0
+# note: lh2 1024: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-sse2,1024,628,171,67,0,9,68,0,0
+# note: lh2k-sse2 1024: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-avx2,1024,303,56,2,0,13,0,0,0
+# note: lh2k-avx2 1024: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-avx512,1024,196,30,3,0,14,0,0,0
+# note: lh2k-avx512 1024: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+rapidhash-v3,4096,1707,783,17,0,29,2,0,0
+# note: rapidhash-v3 4096: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+xxh3,4096,642,110,5,0,21,22,0,0
+# note: xxh3 4096: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2,4096,428,80,3,0,21,0,0,0
+# note: lh2 4096: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-sse2,4096,1690,407,111,0,15,156,0,0
+# note: lh2k-sse2 4096: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-avx2,4096,723,152,2,0,19,0,0,0
+# note: lh2k-avx2 4096: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-avx512,4096,424,78,3,0,20,0,0,0
+# note: lh2k-avx512 4096: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+rapidhash-v3,65536,25838,12304,17,0,300,2,0,0
+# note: rapidhash-v3 65536: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+xxh3,65536,7902,1070,5,0,81,22,0,0
+# note: xxh3 65536: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2,65536,4988,1040,3,0,141,0,0,0
+# note: lh2 65536: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-sse2,65536,21610,4487,351,0,135,636,0,0
+# note: lh2k-sse2 65536: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-avx2,65536,9123,2072,2,0,139,0,0,0
+# note: lh2k-avx2 65536: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-avx512,65536,4984,1038,3,0,140,0,0,0
+# note: lh2k-avx512 65536: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)

@@ -1,6 +1,6 @@
 # Fuzzing
 
-Differential fuzz targets for lanehash, run with
+Differential fuzz targets for the AES function (`lanehash::aes`), run with
 [cargo-fuzz](https://rust-fuzz.github.io/book/introduction.html) (`cargo install
 cargo-fuzz`; needs nightly). Every target compares against an oracle, and cargo-fuzz
 builds with AddressSanitizer and debug assertions, so an out-of-bounds read by a SIMD

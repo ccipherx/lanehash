@@ -1,46 +1,43 @@
-//! lanehash: a fast non-cryptographic 64/128-bit hash. Inputs over 64 bytes go
-//! through AES lanes (AES-NI / VAES / NEON at runtime, T-table software AES otherwise), shorter
-//! inputs through a 64x64->128 multiply-fold path. The definition of the function
-//! is the portable `spec` module; every SIMD backend reproduces it bit-for-bit.
+//! lanehash: fast non-cryptographic 64/128-bit hashing, two functions with one API.
 //!
-//! Public API: [`hash64`], [`hash128`], their batched forms, [`Stream`] for
-//! incremental hashing, and [`FixedState`] / [`RandomState`] for `HashMap`.
-//! The remaining modules are implementation detail (hidden from the docs, kept
-//! public for the reference tests and the benchmark harness).
+//! The crate root is **lanehash** itself, the default choice: chained NH-32 stripes
+//! (`spec`, 65 bytes and up) and a multiply-fold short path (`short`, 0–64 bytes), no
+//! instruction-set requirement, one definition reproduced bit-for-bit by the scalar
+//! reference and the SSE2, AVX2, AVX-512, NEON and wasm simd128 backends. The original
+//! AES-lane function lives in [`aes`] with the same shape of API; it is faster only in
+//! bulk on machines with VAES.
+//!
+//! Public API: [`hash64`], [`hash128`], [`Stream`] for incremental hashing, and
+//! [`FixedState`] / [`RandomState`] for `HashMap`. The hidden modules are implementation
+//! detail, kept public for the reference tests and the benchmark harness.
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::needless_range_loop)]
 
 #[doc(hidden)]
 pub mod constants;
 #[doc(hidden)]
-#[macro_use]
-pub mod lanes;
+pub mod dispatch;
+#[doc(hidden)]
+pub mod hasher;
 #[doc(hidden)]
 pub mod short;
 #[doc(hidden)]
 pub mod spec;
 #[doc(hidden)]
-pub mod soft;
+pub mod stream;
 #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
 #[doc(hidden)]
 pub mod x86;
 #[cfg(all(target_arch = "aarch64", not(feature = "force-fallback")))]
 #[doc(hidden)]
 pub mod arm;
+#[cfg(all(target_arch = "wasm32", target_feature = "simd128", not(feature = "force-fallback")))]
 #[doc(hidden)]
-pub mod dispatch;
-#[doc(hidden)]
-pub mod stream;
-#[doc(hidden)]
-pub mod hasher;
+pub mod wasm;
+pub mod aes;
 
-pub use dispatch::{hash128, hash128_batch, hash64, hash64_batch};
+pub use dispatch::{hash128, hash64};
 pub use hasher::{FixedState, LaneHasher};
 #[cfg(feature = "std")]
 pub use hasher::RandomState;
 pub use stream::Stream;
-
-/// Length regimes (bytes). The lane count depends only on the length.
-pub const SHORT_MAX: usize = 64;
-pub const L4_MAX: usize = 256;
-pub const L8_MAX: usize = 1024;

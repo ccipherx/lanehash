@@ -65,6 +65,7 @@ fn main() {
     println!("# maps: cycles per operation (APERF, core 3), {} words, {} u64, {} structs; commit={}", words.len(), ints.len(), structs.len(), bench::COMMIT);
     let blobs: Vec<Vec<u8>> = (0..200_000).map(|_| { let r = rng(&mut s); let len = 1 + (r % 8) as usize * (1 + (r >> 8) % 25) as usize; (0..len).map(|_| rng(&mut s) as u8).collect() }).collect();
     println!("# hasher,words_insert,words_lookup,u64_insert,u64_lookup,struct_insert,struct_lookup,string_insert,bytes_mixed_lookup,hashbrown_words_lookup");
+    map_workloads("aes", lanehash::aes::FixedState::new(42), &words, &ints, &structs, &blobs);
     map_workloads("lanehash", lanehash::FixedState::new(42), &words, &ints, &structs, &blobs);
     map_workloads("gxhash", gxhash::GxBuildHasher::with_seed(42), &words, &ints, &structs, &blobs);
     map_workloads("rapidhash-fast", rapidhash::fast::RandomState::default(), &words, &ints, &structs, &blobs);
@@ -84,9 +85,10 @@ fn main() {
         let c = best_of(|| { let c0 = aperf(); let mut set: HashSet<u128, foldhash::fast::FixedState> = HashSet::with_capacity_and_hasher(npages, foldhash::fast::FixedState::with_seed(1)); let mut d = 0; for p in pages.chunks_exact(4096) { if !set.insert(f(p)) { d += 1; } } black_box(d); aperf() - c0 }, 3);
         println!("{name},{:.0}", c as f64 / npages as f64);
     };
-    dedup("lanehash", &|p| lanehash::hash128(p, 7));
+    dedup("aes", &|p| lanehash::aes::hash128(p, 7));
     dedup("gxhash", &|p| gxhash::gxhash128(p, 7));
     dedup("xxh3-128", &|p| xxhash_rust::xxh3::xxh3_128_with_seed(p, 7));
+    dedup("lanehash-128", &|p| lanehash::hash128(p, 7));
     dedup("rapidhash-v3(64x2)", &|p| { let a = rapidhash::v3::rapidhash_v3_seeded(p, &rapidhash::v3::RapidSecrets::seed_cpp(7)); let b = rapidhash::v3::rapidhash_v3_seeded(p, &rapidhash::v3::RapidSecrets::seed_cpp(8)); (a as u128) | ((b as u128) << 64) });
     }
 
@@ -108,20 +110,22 @@ fn main() {
         for _ in 0..3 { let t0 = std::time::Instant::now(); let c0 = aperf(); let mut x = 0u64; for ch in big.chunks_exact(1 << 20) { x ^= f(ch); } black_box(x); let c = aperf() - c0; let dt = t0.elapsed().as_secs_f64(); if dt < best { best = dt; bestc = c; } }
         println!("{name},{:.1},{:.1}", (big_mib << 20) as f64 / best / 1e9, (big_mib << 20) as f64 / bestc as f64);
     };
-    let f_lh = |p: &[u8]| lanehash::hash64(p, 7);
-    let f_st = |p: &[u8]| bench::h_lanehash_stream(p, 7);
-    let f_v2 = |p: &[u8]| bench::h_lanehash_vaes256(p, 7);
-    let f_ae = |p: &[u8]| bench::h_lanehash_aesni(p, 7);
+    let f_lh = |p: &[u8]| lanehash::aes::hash64(p, 7);
+    let f_st = |p: &[u8]| bench::h_aes_stream(p, 7);
+    let f_v2 = |p: &[u8]| bench::h_aes_vaes256(p, 7);
+    let f_ae = |p: &[u8]| bench::h_aes_aesni(p, 7);
     let f_gx = |p: &[u8]| gxhash::gxhash64(p, 7);
     let f_xx = |p: &[u8]| xxhash_rust::xxh3::xxh3_64_with_seed(p, 7);
     let f_rp = |p: &[u8]| rapidhash::v3::rapidhash_v3_seeded(p, &rapidhash::v3::RapidSecrets::seed_cpp(7));
-    order.push(("lanehash", &f_lh));
-    order.push(("lanehash-stream", &f_st));
-    order.push(("lanehash-vaes256", &f_v2));
-    order.push(("lanehash-aesni", &f_ae));
+    let f_l2 = |p: &[u8]| lanehash::hash64(p, 7);
+    order.push(("aes", &f_lh));
+    order.push(("aes-stream", &f_st));
+    order.push(("aes-vaes256", &f_v2));
+    order.push(("aes-aesni", &f_ae));
     order.push(("gxhash", &f_gx));
     order.push(("xxh3", &f_xx));
     order.push(("rapidhash-v3", &f_rp));
+    order.push(("lanehash", &f_l2));
     if reverse { order.reverse(); }
     for (n, f) in &order { chk(n, *f); }
 
@@ -138,11 +142,11 @@ fn main() {
     for _ in 0..3 {
         let mut g = 1u64;
         let c0 = aperf(); gen(&mut whole, &mut g); let c1 = aperf();
-        let h = lanehash::hash64(&whole, 7); let c2 = aperf();
+        let h = lanehash::aes::hash64(&whole, 7); let c2 = aperf();
         black_box(h); best_gen = best_gen.min(c1 - c0); best_two = best_two.min(c2 - c0);
         let mut g = 1u64;
         let c0 = aperf();
-        let mut st = lanehash::Stream::new(7);
+        let mut st = lanehash::aes::Stream::new(7);
         for _ in 0..total / piece { gen(&mut small, &mut g); st.update(&small); }
         let h = st.finish64(); let c3 = aperf();
         black_box(h); best_one = best_one.min(c3 - c0);

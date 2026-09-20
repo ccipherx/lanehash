@@ -1,245 +1,248 @@
-//! x86-64 backends: AES-NI (128-bit lanes) and VAES+AVX2 (256-bit registers, two lanes each).
-use crate::constants::C;
-use crate::lanes::{Blk, Lanes, State};
+//! x86-64 kernels of the long path, one module per vector width, all equal to `spec`.
+//! AVX2 and AVX-512 keep the 64-word state in registers; SSE2 keeps it in a 64-byte
+//! aligned stack array. `absorb` / `finish` serve `Stream` over caller-owned state.
+use super::spec::{finish_lanes, Merged, Words, BLOCK, CHAINS, CT, Q, STRIPE};
 use core::arch::x86_64::*;
 
-#[derive(Clone, Copy)]
-pub struct Xmm(pub __m128i);
-#[derive(Clone, Copy)]
-pub struct Ymm(pub __m256i);
+macro_rules! width {
+    ($m:ident, $feat:literal, $reg:expr, $smallm:ident, $v:ty, $W:expr, $loadu:ident, $storeu:ident, $storem:ident, $xor:ident, $add:ident, $mul:ident, $srl32:ident, $set1:ident) => {
+        pub mod $m {
+            use super::*;
+            /// Registers per 64-byte stripe.
+            const R: usize = 64 / $W;
+            /// 64-bit words per register.
+            const WPR: usize = $W / 8;
 
-impl Blk for Xmm {
-    #[inline(always)]
-    fn from_bytes(b: &[u8; 16]) -> Self {
-        Xmm(unsafe { _mm_loadu_si128(b.as_ptr() as *const __m128i) })
-    }
-    #[inline(always)]
-    fn bcast(v: u64) -> Self {
-        Xmm(unsafe { _mm_set1_epi64x(v as i64) })
-    }
-    #[inline(always)]
-    fn round(self, k: Self) -> Self {
-        Xmm(unsafe { _mm_aesenc_si128(self.0, k.0) })
-    }
-    #[inline(always)]
-    fn xor(self, o: Self) -> Self {
-        Xmm(unsafe { _mm_xor_si128(self.0, o.0) })
-    }
-    #[inline(always)]
-    fn to_u128(self) -> u128 {
-        let mut o = [0u8; 16];
-        unsafe { _mm_storeu_si128(o.as_mut_ptr() as *mut __m128i, self.0) };
-        u128::from_le_bytes(o)
-    }
-}
+            /// `x = a ^ w; x + lo32(x) * hi32(x)` on one register.
+            #[inline(always)]
+            unsafe fn step(a: $v, w: $v) -> $v {
+                let x = $xor(a, w);
+                $add(x, $mul(x, $srl32(x)))
+            }
+            #[inline(always)]
+            unsafe fn ld(p: *const u64, r: usize) -> $v {
+                $loadu(p.add(r * WPR) as *const $v)
+            }
+            #[inline(always)]
+            unsafe fn ldb(p: *const u8, r: usize) -> $v {
+                $loadu(p.add(r * $W) as *const $v)
+            }
+            #[inline(always)]
+            /// Merged lanes to memory word by word through general registers: a 512-bit
+            /// vector store is not forwarded to the 64-bit loads that follow (+10 cycles at
+            /// 128 B).
+            unsafe fn store(mv: &[$v; R]) -> Merged {
+                let mut out = Merged([0u64; 8]);
+                for r in 0..R {
+                    $storem(&mut out.0[r * WPR..r * WPR + WPR], mv[r]);
+                }
+                out
+            }
+            /// Chain `c`'s start state `CT + ks`, register `r`.
+            #[inline(always)]
+            unsafe fn start(c: usize, r: usize, ksv: $v) -> $v {
+                $add(ld(CT.as_ptr().add(8 * c), r), ksv)
+            }
+            /// `Q` in `R` registers. Loops, never `core::array::from_fn`, in this module: a
+            /// closure does not inherit the function's target features, so without AVX in the
+            /// build its intrinsics go through memory (+360 cycles per call).
+            #[inline(always)]
+            unsafe fn qv() -> [$v; R] {
+                let mut q = [$set1(0); R];
+                for r in 0..R {
+                    q[r] = ld(Q.as_ptr(), r);
+                }
+                q
+            }
 
-impl Lanes for Xmm {
-    type B = Xmm;
-    const W: usize = 1;
-    #[inline(always)]
-    unsafe fn load(p: *const u8) -> Self {
-        Xmm(_mm_loadu_si128(p as *const __m128i))
-    }
-    #[inline(always)]
-    fn init(seed: u64, first_lane: usize) -> Self {
-        <Self as Blk>::xor(Self::bcast(seed), Self::from_bytes(&C[first_lane]))
-    }
-    #[inline(always)]
-    fn round(self, k: Self) -> Self {
-        Blk::round(self, k)
-    }
-    #[inline(always)]
-    fn xor(self, o: Self) -> Self {
-        <Self as Blk>::xor(self, o)
-    }
-    #[inline(always)]
-    fn splat(b: &[u8; 16]) -> Self {
-        <Self as Blk>::from_bytes(b)
-    }
-    #[inline(always)]
-    fn zero() -> Self {
-        Xmm(unsafe { _mm_setzero_si128() })
-    }
-    #[inline(always)]
-    unsafe fn diff_partial(x: Self, prev: Self, _p: *const u8, _count: usize) -> (Self, Self) {
-        debug_assert!(false);
-        (x, prev)
-    }
-    #[inline(always)]
-    fn add(self, o: Self) -> Self {
-        Xmm(unsafe { _mm_add_epi64(self.0, o.0) })
-    }
-    #[inline(always)]
-    fn fold(self) -> Self {
-        self
-    }
-    #[inline(always)]
-    unsafe fn round_partial(self, _p: *const u8, _count: usize) -> Self {
-        debug_assert!(false);
-        self
-    }
-    #[inline(always)]
-    fn store(self, out: &mut [[u8; 16]]) {
-        unsafe { _mm_storeu_si128(out[0].as_mut_ptr() as *mut __m128i, self.0) }
-    }
-    #[inline(always)]
-    fn from_blocks(inp: &[[u8; 16]]) -> Self {
-        Self::from_bytes(&inp[0])
-    }
-}
+            /// `m < 8`: stripe step and merge step per chain in registers. Latency-bound,
+            /// so the AVX-512 backend uses the AVX2 module's copy: two ymm chains in flight
+            /// beat one double-pumped zmm (38 -> 28 cycles at 128 B).
+            #[inline(always)]
+            #[allow(dead_code)] // unused in the avx512 module itself
+            pub(super) unsafe fn small(p: *const u8, n: usize, m: usize, ks: u64) -> Merged {
+                let (ksv, nv, q) = ($set1(ks as i64), $set1(n as i64), qv());
+                let mut mv = [$set1(0); R];
+                for s in 0..m {
+                    for r in 0..R {
+                        mv[r] = $xor(mv[r], step(step(start(s, r, ksv), ldb(p.add(s * 64), r)), q[r]));
+                    }
+                }
+                for r in 0..R {
+                    mv[r] = $xor(mv[r], step(step(start(m, r, ksv), $xor(ldb(p.add(n - 64), r), nv)), q[r]));
+                }
+                store(&mv)
+            }
 
-impl Lanes for Ymm {
-    type B = Xmm;
-    const W: usize = 2;
-    #[inline(always)]
-    unsafe fn prefetch(p: *const u8) {
-        _mm_prefetch(p as *const i8, _MM_HINT_T0);
-    }
-    #[inline(always)]
-    unsafe fn load(p: *const u8) -> Self {
-        Ymm(_mm256_loadu_si256(p as *const __m256i))
-    }
-    #[inline(always)]
-    fn init(seed: u64, first_lane: usize) -> Self {
-        let lo = Xmm::init(seed, first_lane).0;
-        let hi = Xmm::init(seed, first_lane + 1).0;
-        Ymm(unsafe { _mm256_inserti128_si256(_mm256_castsi128_si256(lo), hi, 1) })
-    }
-    #[inline(always)]
-    fn round(self, k: Self) -> Self {
-        Ymm(unsafe { _mm256_aesenc_epi128(self.0, k.0) })
-    }
-    #[inline(always)]
-    fn xor(self, o: Self) -> Self {
-        Ymm(unsafe { _mm256_xor_si256(self.0, o.0) })
-    }
-    #[inline(always)]
-    fn splat(b: &[u8; 16]) -> Self {
-        Ymm(unsafe { _mm256_broadcastsi128_si256(_mm_loadu_si128(b.as_ptr() as *const __m128i)) })
-    }
-    #[inline(always)]
-    fn zero() -> Self {
-        Ymm(unsafe { _mm256_setzero_si256() })
-    }
-    #[inline(always)]
-    unsafe fn diff_partial(x: Self, prev: Self, p: *const u8, count: usize) -> (Self, Self) {
-        debug_assert_eq!(count, 1);
-        let b = _mm_loadu_si128(p as *const __m128i);
-        let key = _mm_xor_si128(b, _mm256_castsi256_si128(prev.0));
-        let lo = _mm_aesenc_si128(_mm256_castsi256_si128(x.0), key);
-        (Ymm(_mm256_inserti128_si256(x.0, lo, 0)), Ymm(_mm256_inserti128_si256(prev.0, b, 0)))
-    }
-    #[inline(always)]
-    fn add(self, o: Self) -> Self {
-        Ymm(unsafe { _mm256_add_epi64(self.0, o.0) })
-    }
-    #[inline(always)]
-    fn fold(self) -> Xmm {
-        Xmm(unsafe { _mm_add_epi64(_mm256_castsi256_si128(self.0), _mm256_extracti128_si256(self.0, 1)) })
-    }
-    #[inline(always)]
-    unsafe fn round_partial(self, p: *const u8, count: usize) -> Self {
-        debug_assert_eq!(count, 1);
-        let b = _mm_loadu_si128(p as *const __m128i);
-        let lo = _mm_aesenc_si128(_mm_xor_si128(_mm256_castsi256_si128(self.0), b), b);
-        Ymm(_mm256_inserti128_si256(self.0, lo, 0))
-    }
-    #[inline(always)]
-    fn store(self, out: &mut [[u8; 16]]) {
-        unsafe {
-            _mm_storeu_si128(out[0].as_mut_ptr() as *mut __m128i, _mm256_castsi256_si128(self.0));
-            _mm_storeu_si128(out[1].as_mut_ptr() as *mut __m128i, _mm256_extracti128_si256(self.0, 1));
+            /// Merged lanes of `n >= 65` bytes at `p`. Inlined into `hash64` / `hash128` so
+            /// the words reach the folds in registers (returned across a call: a 512-bit
+            /// stack store Zen 4 does not forward, 100 instead of 35 cycles at 128 B).
+            #[inline(always)]
+            unsafe fn lanes(p: *const u8, n: usize, ks: u64) -> Merged {
+                debug_assert!(n >= 65);
+                let m = (n - 1) / STRIPE;
+                if m < CHAINS {
+                    return super::$smallm::small(p, n, m, ks);
+                }
+                let (ksv, nv, q) = ($set1(ks as i64), $set1(n as i64), qv());
+                let mut mv = [$set1(0); R];
+                if $reg {
+                    let mut a = [[$set1(0); R]; CHAINS];
+                    for c in 0..CHAINS {
+                        for r in 0..R {
+                            a[c][r] = start(c, r, ksv);
+                        }
+                    }
+                    let mut s = 0;
+                    while s + CHAINS <= m {
+                        for c in 0..CHAINS {
+                            for r in 0..R {
+                                a[c][r] = step(a[c][r], ldb(p.add((s + c) * 64), r));
+                            }
+                        }
+                        s += CHAINS;
+                    }
+                    let rem = m - s;
+                    for c in 0..CHAINS {
+                        if c < rem {
+                            for r in 0..R {
+                                a[c][r] = step(a[c][r], ldb(p.add((s + c) * 64), r));
+                            }
+                        }
+                    }
+                    for c in 0..CHAINS {
+                        if c == m % CHAINS {
+                            for r in 0..R {
+                                a[c][r] = step(a[c][r], $xor(ldb(p.add(n - 64), r), nv));
+                            }
+                        }
+                    }
+                    for c in 0..CHAINS {
+                        for r in 0..R {
+                            mv[r] = $xor(mv[r], step(a[c][r], q[r]));
+                        }
+                    }
+                } else {
+                    let mut st = Words([0u64; 64]);
+                    let st = st.0.as_mut_ptr();
+                    for c in 0..CHAINS {
+                        for r in 0..R {
+                            $storeu(st.add(8 * c + r * WPR) as *mut $v, step(start(c, r, ksv), ldb(p.add(c * 64), r)));
+                        }
+                    }
+                    let mut s = CHAINS;
+                    while s + CHAINS <= m {
+                        for c in 0..CHAINS {
+                            let sp = st.add(8 * c);
+                            for r in 0..R {
+                                $storeu(sp.add(r * WPR) as *mut $v, step(ld(sp, r), ldb(p.add((s + c) * 64), r)));
+                            }
+                        }
+                        s += CHAINS;
+                    }
+                    while s < m {
+                        let sp = st.add(8 * (s % CHAINS));
+                        for r in 0..R {
+                            $storeu(sp.add(r * WPR) as *mut $v, step(ld(sp, r), ldb(p.add(s * 64), r)));
+                        }
+                        s += 1;
+                    }
+                    let sp = st.add(8 * (m % CHAINS));
+                    for r in 0..R {
+                        $storeu(sp.add(r * WPR) as *mut $v, step(ld(sp, r), $xor(ldb(p.add(n - 64), r), nv)));
+                    }
+                    for c in 0..CHAINS {
+                        for r in 0..R {
+                            mv[r] = $xor(mv[r], step(ld(st.add(8 * c), r), q[r]));
+                        }
+                    }
+                }
+                store(&mv)
+            }
+
+            /// 64-bit hash of `n >= 65` bytes at `p` (`ks` from `spec::ks`).
+            #[target_feature(enable = $feat)]
+            pub unsafe fn hash64(p: *const u8, n: usize, ks: u64) -> u64 {
+                finish_lanes::<false>(&lanes(p, n, ks), ks, n) as u64
+            }
+            /// 128-bit hash of `n >= 65` bytes at `p`.
+            #[target_feature(enable = $feat)]
+            pub unsafe fn hash128(p: *const u8, n: usize, ks: u64) -> u128 {
+                finish_lanes::<true>(&lanes(p, n, ks), ks, n)
+            }
+
+            /// Streaming: absorb `nblocks` whole leading blocks at `p` into `st`.
+            #[target_feature(enable = $feat)]
+            pub unsafe fn absorb(st: &mut Words, p: *const u8, nblocks: usize) {
+                let st = st.0.as_mut_ptr();
+                for b in 0..nblocks {
+                    for c in 0..CHAINS {
+                        let sp = st.add(8 * c);
+                        for r in 0..R {
+                            $storeu(sp.add(r * WPR) as *mut $v, step(ld(sp, r), ldb(p.add(b * BLOCK + c * 64), r)));
+                        }
+                    }
+                }
+            }
+
+            /// Streaming: the 128-bit hash from `st`, the `r < 8` remaining leading stripes
+            /// at `leading` and the closing stripe at `closing` (`spec::finish`).
+            #[target_feature(enable = $feat)]
+            pub unsafe fn finish(st: &Words, leading: *const u8, r: usize, closing: *const u8, n: usize, ks: u64) -> u128 {
+                let mut w = Words(st.0);
+                let sp = w.0.as_mut_ptr();
+                for c in 0..r {
+                    for k in 0..R {
+                        $storeu(sp.add(8 * c + k * WPR) as *mut $v, step(ld(sp.add(8 * c), k), ldb(leading.add(c * 64), k)));
+                    }
+                }
+                let (nv, c) = ($set1(n as i64), r % CHAINS);
+                for k in 0..R {
+                    $storeu(sp.add(8 * c + k * WPR) as *mut $v, step(ld(sp.add(8 * c), k), $xor(ldb(closing, k), nv)));
+                }
+                let used = ((n - 1) / STRIPE + 1).min(CHAINS);
+                let q = qv();
+                let mut mv = [$set1(0); R];
+                for c in 0..used {
+                    for k in 0..R {
+                        mv[k] = $xor(mv[k], step(ld(sp.add(8 * c), k), q[k]));
+                    }
+                }
+                finish_lanes::<true>(&store(&mv), ks, n)
+            }
         }
-    }
-    #[inline(always)]
-    fn from_blocks(inp: &[[u8; 16]]) -> Self {
-        let lo = Xmm::from_bytes(&inp[0]).0;
-        let hi = Xmm::from_bytes(&inp[1]).0;
-        Ymm(unsafe { _mm256_inserti128_si256(_mm256_castsi128_si256(lo), hi, 1) })
-    }
+    };
 }
 
-/// # Safety: requires AES-NI + SSE2 and `len > 64` bytes readable at `p`.
-#[target_feature(enable = "aes,sse2")]
-pub unsafe fn hash128_aesni(p: *const u8, len: usize, seed: u64) -> u128 {
-    regimes!(Xmm, 1, p, len, seed)
+#[inline(always)]
+unsafe fn storem_128(out: &mut [u64], v: __m128i) {
+    // SSE2 only: `_mm_extract_epi64` would be SSE4.1
+    out[0] = _mm_cvtsi128_si64(v) as u64;
+    out[1] = _mm_cvtsi128_si64(_mm_unpackhi_epi64(v, v)) as u64;
+}
+#[inline(always)]
+unsafe fn storem_256(out: &mut [u64], v: __m256i) {
+    storem_128(&mut out[..2], _mm256_castsi256_si128(v));
+    storem_128(&mut out[2..], _mm256_extracti128_si256::<1>(v));
+}
+#[inline(always)]
+unsafe fn storem_512(out: &mut [u64], v: __m512i) {
+    storem_256(&mut out[..4], _mm512_castsi512_si256(v));
+    storem_256(&mut out[4..], _mm512_extracti64x4_epi64::<1>(v));
+}
+#[inline(always)]
+unsafe fn srl32_128(x: __m128i) -> __m128i {
+    _mm_srli_epi64::<32>(x)
+}
+#[inline(always)]
+unsafe fn srl32_256(x: __m256i) -> __m256i {
+    _mm256_srli_epi64::<32>(x)
+}
+#[inline(always)]
+unsafe fn srl32_512(x: __m512i) -> __m512i {
+    _mm512_srli_epi64::<32>(x)
 }
 
-/// # Safety: requires VAES + AVX2 and `len > 64` bytes readable at `p`.
-#[target_feature(enable = "vaes,avx2")]
-pub unsafe fn hash128_vaes256(p: *const u8, len: usize, seed: u64) -> u128 {
-    regimes!(Ymm, 2, p, len, seed)
-}
-
-/// Differential-form backend using the 32 EVEX ymm registers (AVX-512VL + VAES):
-/// same function, XOR off the dependency chain.
-/// # Safety: requires VAES + AVX-512F/VL and `len > 64` bytes readable at `p`.
-#[target_feature(enable = "vaes,avx2,avx512f,avx512vl")]
-pub unsafe fn hash128_vaesvl(p: *const u8, len: usize, seed: u64) -> u128 {
-    if len <= crate::L4_MAX {
-        crate::lanes::lanes_hash_l4::<Ymm, 2>(p, len, seed)
-    } else if len <= crate::L8_MAX {
-        crate::lanes::lanes_hash_diff::<Ymm, 8, 4>(p, len, seed)
-    } else if len >= crate::lanes::BULK_SANDWICH_MIN {
-        crate::lanes::lanes_hash::<Ymm, 16, 8>(p, len, seed)
-    } else {
-        crate::lanes::lanes_hash_diff::<Ymm, 16, 8>(p, len, seed)
-    }
-}
-
-// ---- batched entries (WP2): 4 inputs in the L = 4 regime, 2 in the L = 8 regime ----
-
-/// # Safety: AES-NI; every input `65..=256` bytes readable.
-#[target_feature(enable = "aes,sse2")]
-pub unsafe fn batch4_l4_aesni(ps: &[*const u8; 4], lens: &[usize; 4], seed: u64) -> [u128; 4] {
-    crate::lanes::lanes_hash_batch4::<Xmm, 4, 4>(ps, lens, seed)
-}
-/// # Safety: AES-NI; every input `257..=1024` bytes readable.
-#[target_feature(enable = "aes,sse2")]
-pub unsafe fn batch2_l8_aesni(ps: &[*const u8; 2], lens: &[usize; 2], seed: u64) -> [u128; 2] {
-    crate::lanes::lanes_hash_batch2::<Xmm, 8, 8>(ps, lens, seed)
-}
-/// # Safety: VAES + AVX2; every input `65..=256` bytes readable.
-#[target_feature(enable = "vaes,avx2")]
-pub unsafe fn batch4_l4_vaes256(ps: &[*const u8; 4], lens: &[usize; 4], seed: u64) -> [u128; 4] {
-    crate::lanes::lanes_hash_batch4::<Ymm, 4, 2>(ps, lens, seed)
-}
-/// # Safety: VAES + AVX2; every input `257..=1024` bytes readable.
-#[target_feature(enable = "vaes,avx2")]
-pub unsafe fn batch2_l8_vaes256(ps: &[*const u8; 2], lens: &[usize; 2], seed: u64) -> [u128; 2] {
-    crate::lanes::lanes_hash_batch2::<Ymm, 8, 4>(ps, lens, seed)
-}
-/// # Safety: VAES + AVX-512VL; every input `65..=256` bytes readable.
-#[target_feature(enable = "vaes,avx2,avx512f,avx512vl")]
-pub unsafe fn batch4_l4_vaesvl(ps: &[*const u8; 4], lens: &[usize; 4], seed: u64) -> [u128; 4] {
-    crate::lanes::lanes_hash_batch4::<Ymm, 4, 2>(ps, lens, seed)
-}
-/// # Safety: VAES + AVX-512VL; every input `257..=1024` bytes readable.
-#[target_feature(enable = "vaes,avx2,avx512f,avx512vl")]
-pub unsafe fn batch2_l8_vaesvl(ps: &[*const u8; 2], lens: &[usize; 2], seed: u64) -> [u128; 2] {
-    crate::lanes::lanes_hash_diff_batch2::<Ymm, 8, 4>(ps, lens, seed)
-}
-
-// ---- streaming support: 16-lane state in memory, absorb/finish with each backend ----
-
-/// # Safety: AES-NI; `nblocks*16` bytes readable at `p`; `nblocks` history as in `State::absorb`.
-#[target_feature(enable = "aes,sse2")]
-pub unsafe fn absorb16_aesni(state: &mut [[u8; 16]; 16], p: *const u8, nblocks: usize) {
-    let mut st = State::<Xmm, 16, 16>::from_blocks(state);
-    st.absorb(p, nblocks);
-    st.store(state);
-}
-#[target_feature(enable = "aes,sse2")]
-pub unsafe fn finish16_aesni(state: &[[u8; 16]; 16], c: *const u8, len: usize) -> u128 {
-    State::<Xmm, 16, 16>::from_blocks(state).finish(c, len)
-}
-#[target_feature(enable = "vaes,avx2")]
-pub unsafe fn absorb16_vaes256(state: &mut [[u8; 16]; 16], p: *const u8, nblocks: usize) {
-    let mut st = State::<Ymm, 16, 8>::from_blocks(state);
-    st.absorb(p, nblocks);
-    st.store(state);
-}
-#[target_feature(enable = "vaes,avx2")]
-pub unsafe fn finish16_vaes256(state: &[[u8; 16]; 16], c: *const u8, len: usize) -> u128 {
-    State::<Ymm, 16, 8>::from_blocks(state).finish(c, len)
-}
+width!(sse2, "sse2", false, sse2, __m128i, 16, _mm_loadu_si128, _mm_storeu_si128, storem_128, _mm_xor_si128, _mm_add_epi64, _mm_mul_epu32, srl32_128, _mm_set1_epi64x);
+width!(avx2, "avx2", true, avx2, __m256i, 32, _mm256_loadu_si256, _mm256_storeu_si256, storem_256, _mm256_xor_si256, _mm256_add_epi64, _mm256_mul_epu32, srl32_256, _mm256_set1_epi64x);
+width!(avx512, "avx512f", true, avx2, __m512i, 64, _mm512_loadu_si512, _mm512_storeu_si512, storem_512, _mm512_xor_si512, _mm512_add_epi64, _mm512_mul_epu32, srl32_512, _mm512_set1_epi64);
