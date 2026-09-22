@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Regenerate lanehash_ttables.h (AES T-tables) from the S-box in lanehash_constants.h."""
+"""Regenerate lanehash_aes_ttables.h (AES T-tables) from the S-box in lanehash_aes_constants.h."""
 import re
-src = open("lanehash_constants.h").read()
+src = open("lanehash_aes_constants.h").read()
 m = re.search(r"LH_SBOX\[256\] = \{(.*?)\};", src, re.S)
 sbox = [int(x, 16) for x in re.findall(r"0x[0-9a-fA-F]{2}", m.group(1))]
 assert len(sbox) == 256
@@ -22,4 +22,4 @@ for r in range(4):
         out.append("        " + ", ".join(vals[i:i + 8]) + ",")
     out.append("    },")
 out.append("};")
-open("lanehash_ttables.h", "w").write("\n".join(out) + "\n")
+open("lanehash_aes_ttables.h", "w").write("\n".join(out) + "\n")
