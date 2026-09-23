@@ -31,7 +31,7 @@ Backends are chosen at compile time and all produce the same output:
 Verification values (SMHasher): lanehash 0xD048C22B (64-bit), 0xC2F39939 (128-bit);
 lanehash_aes 0x9FF60BEF (64-bit), 0x1A79672D (128-bit).
 
-`make test` builds five variants (scalar, scalar without `__int128`, SSE2 + AES-NI, AVX2 +
-VAES, AVX-512 + VAES) and compares each with the Rust crate through `../lanehash-ffi` on
-12 678 (length, seed, alignment) cases per function. `make speed` prints cycles per hash of
-the C port next to the Rust crate.
+`make test` builds six variants (scalar, scalar without `__int128`, SSE2 + AES-NI, AVX2 +
+VAES, AVX-512 + VAES, and SSE2 + AES-NI at `-O0` under ASan and UBSan) and compares each
+with the Rust crate through `../lanehash-ffi` on 12 678 (length, seed, alignment) cases per
+function. `make speed` prints cycles per hash of the C port next to the Rust crate.

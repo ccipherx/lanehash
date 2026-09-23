@@ -347,8 +347,8 @@ static uint64_t lanehash_long(const uint8_t *p, size_t n, uint64_t seed, uint64_
         uint64_t s;
 #  if LANEHASH_R == 4
         unsigned c;
-        /* SSE2: state array, 64-byte aligned so the stores never split a cache line */
-        union { uint64_t w[64]; lanehash_v v[16]; } st;
+        /* SSE2: the 64-word state in memory (32 xmm registers) */
+        union { uint64_t w[64]; lanehash_v v[32]; } st;
         for (c = 0; c < 8; c++) {
             LANEHASH_UNROLL
             for (r = 0; r < LANEHASH_R; r++)

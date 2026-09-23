@@ -24,12 +24,16 @@ test_avx512: $(DEPS)
 test_noint128: $(DEPS)
 	$(CC) $(CFLAGS) -DLANEHASH_PORTABLE -DLANEHASH_NO_INT128 -DLANEHASH_AES_PORTABLE -DLANEHASH_AES_NO_INT128 $(SRC) $(FFI) $(LIBS) -o $@
 
-test: test_portable test_noint128 test_aesni test_vaes test_avx512
-	./test_portable && ./test_noint128 && ./test_aesni && ./test_vaes && ./test_avx512
+# SSE2 + AES-NI at -O0 under ASan and UBSan, stopping at the first report
+test_sanitize: $(DEPS)
+	$(CC) $(CFLAGS) -O0 -g -fsanitize=address,undefined -fno-sanitize-recover=all -maes -msse4.1 $(SRC) $(FFI) $(LIBS) -o $@
+
+test: test_portable test_noint128 test_aesni test_vaes test_avx512 test_sanitize
+	./test_portable && ./test_noint128 && ./test_aesni && ./test_vaes && ./test_avx512 && ./test_sanitize
 
 speed: lanehash.c lanehash_aes.c speed.c
 	$(CC) $(CFLAGS) -march=native lanehash.c lanehash_aes.c speed.c $(FFI) $(LIBS) -o $@
 
 clean:
-	rm -f test_portable test_noint128 test_aesni test_vaes test_avx512 speed
+	rm -f test_portable test_noint128 test_aesni test_vaes test_avx512 test_sanitize speed
 .PHONY: all test clean
