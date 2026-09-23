@@ -89,7 +89,7 @@ fn batch_throughput(bufs: &[&[u8]], size: usize, k: usize, min_ms: f64) -> Sampl
         let c0 = aperf();
         loop {
             for (chunk, o) in views.chunks(k).zip(out.chunks_mut(k)) {
-                lanehash::hash64_batch(chunk, n, o);
+                lanehash::aes::hash64_batch(chunk, n, o);
             }
             sink ^= out[n as usize % nbuf];
             n += nbuf as u64;
@@ -228,7 +228,7 @@ fn main() {
                 for &i in &order {
                     let k = batches[i];
                     let smp = batch_throughput(&bufs, *size, k, min_ms);
-                    let e = results.entry((format!("lanehash-batch{k}"), *size)).or_default();
+                    let e = results.entry((format!("aes-batch{k}"), *size)).or_default();
                     e.0.push(smp.bytes_per_cycle);
                     e.1.push(smp.gbs);
                     e.2.push(smp.cycles_per_hash);
