@@ -1,9 +1,10 @@
 # lanehash-wasm
 
 WebAssembly bindings for the `lanehash` crate, built with `wasm-bindgen` / `wasm-pack`.
-On wasm32 the core crate runs its portable `spec` backend (WebAssembly has no AES
-instruction), so the output is bit-identical to every native backend but slower above
-64 bytes.
+`hash64` / `hash128` / `Stream` are the default function; build with
+`RUSTFLAGS="-C target-feature=+simd128"` for its simd128 backend (the scalar reference
+otherwise, same bits). `aes_hash64` / `aes_hash128` / `AesStream` are the AES function on
+its software backend, the slower one here.
 
 ## Build
 
