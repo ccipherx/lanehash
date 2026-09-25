@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
---- Testing lanehash64 "lanehash prototype, 64-bit" GOOD
+--- Testing lanehash_aes64 "lanehash_aes, 64-bit, AES lanes + mum short path" GOOD
 
 [[[ Sanity Tests ]]]
 

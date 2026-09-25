@@ -1,0 +1,18 @@
+=== wasm (node), scalar build, final ===
+# node v24.17.0 simd128=false pkg=./pkg
+hash,size,ns_per_byte,ns_per_hash
+lh2-scalar,256,0.1933,49.5
+lh2-scalar,1024,0.1316,134.7
+lh2-scalar,4096,0.0842,345.1
+lh2-scalar,65536,0.0874,5728.6
+lh2-scalar,1048576,0.3587,376146.1
+xxh3,256,0.1477,37.8
+xxh3,1024,0.0851,87.1
+xxh3,4096,0.0766,313.8
+xxh3,65536,0.0915,5994.9
+xxh3,1048576,0.3646,382350.4
+rapidhash,256,0.2341,59.9
+rapidhash,1024,0.2007,205.5
+rapidhash,4096,0.1924,788.2
+rapidhash,65536,0.2051,13441.3
+rapidhash,1048576,0.4810,504352.7

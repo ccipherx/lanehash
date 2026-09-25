@@ -1,0 +1,22 @@
+# icount: exact per-call instruction mix by ptrace single-step (segment difference); commit=1dc417cf49-dirty align=16 core=3 batch=0; harness overhead subtracted: 26 instructions per call (empty function: loop, indirect call, ret)
+# hash,size,instr,loads,stores,aes,branches,vec_stack_movs,prefetch,rep_iters
+rapidhash-v3,128,117,34,12,0,7,3,0,0
+# note: rapidhash-v3 128: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+xxh3,128,101,16,0,0,5,0,0,0
+# note: xxh3 128: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-scalar,128,420,57,22,0,12,0,0,0
+# note: lh2k-scalar 128: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+rapidhash-v3,1024,489,209,19,0,12,3,0,0
+# note: rapidhash-v3 1024: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+xxh3,1024,811,171,52,0,26,4,0,0
+# note: xxh3 1024: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-scalar,1024,2007,332,206,0,40,0,0,0
+# warning: lh2k-scalar 1024: 29 executed instructions outside the disassembly
+# note: lh2k-scalar 1024: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+rapidhash-v3,65536,26121,12305,19,0,300,3,0,0
+# note: rapidhash-v3 65536: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+xxh3,65536,39009,8370,121,0,1097,132,0,0
+# note: xxh3 65536: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)
+lh2k-scalar,65536,70173,16460,8396,0,1174,0,0,0
+# warning: lh2k-scalar 65536: 29 executed instructions outside the disassembly
+# note: lh2k-scalar 65536: segment residue -12 (instructions executed more in the 1-call segment than the 3-call one; see dump)

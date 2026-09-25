@@ -1,0 +1,49 @@
+=== baseline features, MIRIFLAGS='' ===
+test every_backend_equals_the_reference ... warning: integer-to-pointer cast
+test hasher_is_deterministic_and_seeded ... ok
+test stream_equals_one_shot_at_every_split ... ignored
+test result: ok. 2 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1318.14s
+test known_answers_match_the_prototype ... warning: integer-to-pointer cast
+test smhasher_verification_values ... ok
+test structure ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 340.42s
+=== baseline features, MIRIFLAGS='-Zmiri-tree-borrows' ===
+test every_backend_equals_the_reference ... warning: integer-to-pointer cast
+test hasher_is_deterministic_and_seeded ... ok
+test stream_equals_one_shot_at_every_split ... ignored
+test result: ok. 2 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1318.27s
+test known_answers_match_the_prototype ... warning: integer-to-pointer cast
+test smhasher_verification_values ... ok
+test structure ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 340.34s
+=== +avx2 ===
+test every_backend_equals_the_reference ... warning: integer-to-pointer cast
+test hasher_is_deterministic_and_seeded ... ok
+test stream_equals_one_shot_at_every_split ... ignored
+test result: ok. 2 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1382.09s
+test known_answers_match_the_prototype ... warning: integer-to-pointer cast
+test smhasher_verification_values ... FAILED
+test structure ... ok
+thread 'smhasher_verification_values' (1002) panicked at lanehash/tests/vectors.rs:145:5:
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 199.33s
+error: test failed, to rerun pass `--test vectors`
+=== +avx2,+avx512f ===
+test every_backend_equals_the_reference ... warning: integer-to-pointer cast
+test hasher_is_deterministic_and_seeded ... ok
+test stream_equals_one_shot_at_every_split ... ignored
+test result: ok. 2 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1460.55s
+test known_answers_match_the_prototype ... warning: integer-to-pointer cast
+test smhasher_verification_values ... ok
+test structure ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 141.86s
+MIRI_DONE
+=== +avx2 (rerun after the short-path fix; run 1's stage compiled between two edits) ===
+test every_backend_equals_the_reference ... warning: integer-to-pointer cast
+test hasher_is_deterministic_and_seeded ... ok
+test stream_equals_one_shot_at_every_split ... ignored
+test result: ok. 2 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1382.08s
+test known_answers_match_the_prototype ... warning: integer-to-pointer cast
+test smhasher_verification_values ... ok
+test structure ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 199.49s
+MIRI_AVX2_RERUN_DONE
