@@ -128,7 +128,7 @@ For short, latency-sensitive inputs, the default `lanehash` implementation is ge
 
 Benchmarks are included to show the workloads `lanehash` is designed for. Results are hardware and configuration dependent and should not be treated as universal rankings.
 
-Raw benchmark data is available under `docs/bench/lanehash/`.
+Raw benchmark data is available under `docs/bench/lanehash/`, the chart under `docs/bench/charts/lanehash.svg`.
 
 ## Default algorithm
 
