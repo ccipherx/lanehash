@@ -1,16 +1,16 @@
 [package]
 name = "lanehash"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.89"
 publish = true
 license = "MIT OR Apache-2.0"
-description = "The fastest non-cryptographic, highest quality hash algorithm"
+description = "Fast, high-quality 64/128-bit non-cryptographic hashing without AES, plus an AES-lane variant; one definition on every backend"
 repository = "https://github.com/ccipherx/lanehash"
 homepage = "https://github.com/ccipherx/lanehash"
-keywords = ["hash", "hasher", "no-std", "lanehash"]
+keywords = ["hash", "hasher", "no-std", "simd", "lanehash"]
 categories = ["algorithms", "no-std"]
-include = ["src/**/*", "tests/**/*", "README.md", "LICENSE-MIT", "LICENSE-APACHE"]
+include = ["src/**/*", "tests/**/*", "README.md", "CHANGELOG.md", "LICENSE-MIT", "LICENSE-APACHE"]
 
 [features]
 default = ["std"]
