@@ -122,9 +122,12 @@ lanehash::aes::hash64_batch(
 
 Benchmark results are hardware and configuration dependent. The numbers below are provided to document representative workloads rather than as universal performance rankings.
 
-Raw benchmark data is available in [`docs/bench/lanehash/`](docs/bench/lanehash/).
+![lanehash benchmarks](docs/bench/charts/lanehash.svg)
 
-The historical rows in that directory are named `lh2`, which was the function name before 0.2.
+Raw benchmark data is available in [`docs/bench/lanehash/`](docs/bench/lanehash/): the
+chart's `throughput.csv`, `latency.csv` and `workloads.csv`, and the `*-final*` files
+behind the table below, whose rows are still named `lh2`, the function name before 0.2.
+`bench/chart.py` renders the chart from the CSVs.
 
 ## Default algorithm
 
