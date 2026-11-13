@@ -40,14 +40,19 @@ impl Stream {
     }
 
     /// A block is absorbed only once 64 more bytes follow it, so the closing stripe
-    /// (the last 64 bytes of the input) is never inside an absorbed block.
+    /// (the last 64 bytes of the input) is never inside an absorbed block. Bytes already
+    /// buffered complete their block through the buffer (two blocks at most per call),
+    /// everything after that is absorbed straight from `data`: with a buffer that kept
+    /// 64 bytes of look-ahead, a stream fed in 4 KiB pieces went through the buffer block
+    /// by block, at a third of the one-shot rate.
     pub fn update(&mut self, mut data: &[u8]) {
         self.total += data.len();
 
-        while !data.is_empty() {
+        loop {
             let carry = self.carry();
+            let pending = self.buf_len - carry;
 
-            if self.buf_len == carry && data.len() >= BLOCK + 64 {
+            if pending == 0 && data.len() >= BLOCK + 64 {
                 let k = (data.len() - 64) / BLOCK;
                 // SAFETY: `data` holds `k` whole blocks plus 64 bytes.
                 unsafe { (self.backend.absorb)(&mut self.st, data.as_ptr(), k) };
@@ -59,25 +64,27 @@ impl Stream {
                 return;
             }
 
-            let take = data.len().min(carry + BLOCK + 64 - self.buf_len);
-            self.buf[self.buf_len..self.buf_len + take].copy_from_slice(&data[..take]);
-            self.buf_len += take;
-            data = &data[take..];
-
-            if self.buf_len == carry + BLOCK + 64 {
-                // SAFETY: one whole block at `buf[carry..]`, 64 bytes behind it.
-                unsafe {
-                    (self.backend.absorb)(
-                        &mut self.st,
-                        self.buf.as_ptr().add(carry),
-                        1,
-                    )
-                };
-                self.blocks += 1;
-
-                self.buf.copy_within(carry + BLOCK - 64..self.buf_len, 0);
-                self.buf_len -= carry + BLOCK - 64;
+            if pending + data.len() < BLOCK + 64 {
+                // no block has its 64 bytes of look-ahead yet
+                self.buf[self.buf_len..self.buf_len + data.len()].copy_from_slice(data);
+                self.buf_len += data.len();
+                return;
             }
+
+            // one block through the buffer: take only the bytes that complete it
+            if pending < BLOCK {
+                let take = BLOCK - pending;
+                self.buf[self.buf_len..self.buf_len + take].copy_from_slice(&data[..take]);
+                self.buf_len += take;
+                data = &data[take..];
+            }
+            // SAFETY: one whole block at `buf[carry..]`.
+            unsafe { (self.backend.absorb)(&mut self.st, self.buf.as_ptr().add(carry), 1) };
+            self.blocks += 1;
+
+            // the block's last 64 bytes become the carry, what followed it stays pending
+            self.buf.copy_within(carry + BLOCK - 64..self.buf_len, 0);
+            self.buf_len -= carry + BLOCK - 64;
         }
     }
 
