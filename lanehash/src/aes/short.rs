@@ -117,12 +117,8 @@ fn class_le16<const HI: bool>(p: &[u8], k: &[u64; 8]) -> u128 {
     let len = p.len();
     debug_assert!(len <= 16);
     let ln = len as u64;
-    let (w0, w1) = match len {
-        0 => (0, 0),
-        1..=3 => ((p[0] as u64) | ((p[len / 2] as u64) << 8) | ((p[len - 1] as u64) << 16), 0),
-        4..=8 => (le32(p, 0) | (le32(p, len - 4) << 32), 0),
-        _ => (le64(p, 0), le64(p, len - 8)),
-    };
+    // the same two words as the default function, read without a branch from 4 bytes up
+    let (w0, w1) = crate::short::words16(p);
     let (x, y) = mum(w0 ^ k[0], w1 ^ k[1] ^ ln);
     finish::<HI>(x, y, k, ln)
 }

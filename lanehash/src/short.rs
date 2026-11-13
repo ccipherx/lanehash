@@ -60,17 +60,32 @@ fn finish<const HI: bool>(x: u64, y: u64, ln: u64) -> u128 {
     lo as u128 | (hi as u128) << 64
 }
 
-/// The two words that carry all of `p`, `p.len() <= 16`: three bytes spread, two
-/// overlapping 32-bit reads, or two overlapping 64-bit reads.
+/// The two words that carry all of `p`, `p.len() <= 16`: three bytes spread (1 to 3
+/// bytes), `le32(p, 0) | le32(p, len - 4) << 32` and zero (4 to 8), or
+/// `le64(p, 0)` and `le64(p, len - 8)` (9 to 16). The last two cases share one
+/// branch-free form of four 32-bit reads: key sets mix lengths around 8, and a branch
+/// there mispredicts about every second key (6 cycles per hash on mixed 1 to 16 bytes).
 #[inline(always)]
 pub fn words16(p: &[u8]) -> (u64, u64) {
     let len = p.len();
     debug_assert!(len <= 16);
-    match len {
-        0 => (0, 0),
-        1..=3 => ((p[0] as u64) | ((p[len / 2] as u64) << 8) | ((p[len - 1] as u64) << 16), 0),
-        4..=8 => (le32(p, 0) | (le32(p, len - 4) << 32), 0),
-        _ => (le64(p, 0), le64(p, len - 8)),
+    if len >= 4 {
+        // `over` is `len - 8` above 8 bytes and 0 otherwise
+        let long = ((len > 8) as usize).wrapping_neg();
+        let over = len.wrapping_sub(8) & long;
+        // SAFETY: 4 <= len, and `over` is 0 or `len - 8`, so the four offsets
+        // 0, len - 4 - over, over and len - 4 all leave 4 bytes inside `p`. Unchecked
+        // because the compiler cannot see that through the mask: three bounds branches
+        // and a frame for their panics cost 3 cycles at every fixed length.
+        let rd = |at: usize| unsafe { u32::from_le(core::ptr::read_unaligned(p.as_ptr().add(at) as *const u32)) as u64 };
+        debug_assert!(len - 4 - over + 4 <= len && over + 4 <= len);
+        let w0 = rd(0) | rd(len - 4 - over) << 32;
+        let w1 = (rd(over) | rd(len - 4) << 32) & long as u64;
+        (w0, w1)
+    } else if len > 0 {
+        ((p[0] as u64) | ((p[len / 2] as u64) << 8) | ((p[len - 1] as u64) << 16), 0)
+    } else {
+        (0, 0)
     }
 }
 
@@ -105,6 +120,19 @@ fn class_le64<const HI: bool>(p: &[u8], ka: u64, kb: u64) -> u128 {
     let (x2, y2) = mum(w4 ^ ka.rotate_left(ROT[2]), w5 ^ kb.rotate_left(ROT[2]));
     let (x3, y3) = mum(w6 ^ ka.rotate_left(ROT[3]), w7 ^ (kb.rotate_left(ROT[3]) ^ ln));
     finish::<HI>(x0 ^ y1 ^ x2 ^ y3, y0 ^ x1 ^ y2 ^ x3, ln)
+}
+
+/// The class functions inlined, for inputs whose length the caller knows at compile
+/// time: the class and every load offset fold to constants.
+#[inline(always)]
+pub fn short128_inline<const HI: bool>(p: &[u8], ka: u64, kb: u64) -> u128 {
+    if p.len() <= 16 {
+        class_le16::<HI>(p, ka, kb)
+    } else if p.len() <= 32 {
+        class_le32::<HI>(p, ka, kb)
+    } else {
+        class_le64::<HI>(p, ka, kb)
+    }
 }
 
 // Out of line per class and width, taking the secrets: callers that hold them (the map

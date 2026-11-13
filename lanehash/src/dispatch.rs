@@ -178,6 +178,28 @@ pub fn hash128(bytes: &[u8], seed: u64) -> u128 {
     hash128_keyed(bytes, ka, kb, ks)
 }
 
+/// [`hash64`] of an array: with the length a constant, the short classes inline without
+/// a call or a length branch. Same value as `hash64(&key[..], seed)`.
+#[inline(always)]
+pub fn hash64_fixed<const N: usize>(key: &[u8; N], seed: u64) -> u64 {
+    let (ka, kb, ks) = spec::keys(seed);
+    if N <= spec::SHORT_MAX {
+        short::short128_inline::<false>(key, ka, kb) as u64
+    } else {
+        hash64_keyed(key, ka, kb, ks)
+    }
+}
+/// [`hash128`] of an array, see [`hash64_fixed`].
+#[inline(always)]
+pub fn hash128_fixed<const N: usize>(key: &[u8; N], seed: u64) -> u128 {
+    let (ka, kb, ks) = spec::keys(seed);
+    if N <= spec::SHORT_MAX {
+        short::short128_inline::<true>(key, ka, kb)
+    } else {
+        hash128_keyed(key, ka, kb, ks)
+    }
+}
+
 /// A seed with its secrets computed once, for hashing many inputs under one seed:
 /// `Keyed::new(seed).hash64(b) == hash64(b, seed)` without the seed multiply per call.
 #[derive(Clone, Copy, Debug)]
@@ -200,5 +222,14 @@ impl Keyed {
     #[inline(always)]
     pub fn hash128(&self, bytes: &[u8]) -> u128 {
         hash128_keyed(bytes, self.ka, self.kb, self.ks)
+    }
+    /// Equal to [`hash64_fixed`] under the seed given to `new`.
+    #[inline(always)]
+    pub fn hash64_fixed<const N: usize>(&self, key: &[u8; N]) -> u64 {
+        if N <= spec::SHORT_MAX {
+            short::short128_inline::<false>(key, self.ka, self.kb) as u64
+        } else {
+            hash64_keyed(key, self.ka, self.kb, self.ks)
+        }
     }
 }

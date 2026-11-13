@@ -93,6 +93,30 @@ fn stream_equals_one_shot_at_every_split() {
 }
 
 #[test]
+fn keyed_and_fixed_entry_points_equal_the_one_shot_function() {
+    let buf = data(4097);
+    for &seed in &[0u64, 1, 0x9E37_79B9_7F4A_7C15, u64::MAX] {
+        let k = lanehash::Keyed::new(seed);
+        for &n in &lens() {
+            if n > buf.len() {
+                continue;
+            }
+            assert_eq!(k.hash64(&buf[..n]), hash64(&buf[..n], seed), "keyed n={n}");
+            assert_eq!(k.hash128(&buf[..n]), hash128(&buf[..n], seed), "keyed n={n}");
+        }
+        macro_rules! fixed {
+            ($($n:literal)*) => {$(
+                let a: &[u8; $n] = buf[..$n].try_into().unwrap();
+                assert_eq!(lanehash::hash64_fixed(a, seed), hash64(a, seed), "fixed {}", $n);
+                assert_eq!(lanehash::hash128_fixed(a, seed), hash128(a, seed), "fixed {}", $n);
+                assert_eq!(k.hash64_fixed(a), hash64(a, seed), "keyed fixed {}", $n);
+            )*};
+        }
+        fixed!(0 1 2 3 4 5 7 8 9 12 15 16 17 20 24 31 32 33 40 48 63 64 65 100 128 513);
+    }
+}
+
+#[test]
 fn hasher_is_deterministic_and_seeded() {
     use std::hash::{BuildHasher, Hasher};
     let a = lanehash::FixedState::new(1);

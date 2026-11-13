@@ -36,7 +36,7 @@ pub mod arm;
 pub mod wasm;
 pub mod aes;
 
-pub use dispatch::{hash128, hash64, Keyed};
+pub use dispatch::{hash128, hash128_fixed, hash64, hash64_fixed, Keyed};
 pub use hasher::{FixedState, LaneHasher};
 #[cfg(feature = "std")]
 pub use hasher::RandomState;
