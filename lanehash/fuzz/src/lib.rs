@@ -23,3 +23,21 @@ pub fn backends() -> Vec<&'static Backend> {
     }
     v
 }
+
+/// Every backend of the default function this CPU can run (as in tests/api.rs).
+pub fn default_backends() -> Vec<&'static lanehash::dispatch::Backend> {
+    let mut v = vec![&lanehash::dispatch::SPEC];
+    #[cfg(target_arch = "x86_64")]
+    {
+        v.push(&lanehash::dispatch::SSE2);
+        if lanehash::dispatch::has_avx2() {
+            v.push(&lanehash::dispatch::AVX2);
+        }
+        if lanehash::dispatch::has_avx512() {
+            v.push(&lanehash::dispatch::AVX512);
+        }
+    }
+    #[cfg(target_arch = "aarch64")]
+    v.push(&lanehash::dispatch::NEON);
+    v
+}
