@@ -17,6 +17,10 @@ macro_rules! width {
             const SMALL_MAX: usize = $small_max;
             /// Up to this many they use the `chained` of the module that provides `small`.
             const MID_MAX: usize = $mid_max;
+            /// Without the state in registers: up to this many whole blocks run two chains
+            /// at a time from start to merge.
+            #[allow(dead_code)]
+            const FUSE_MAX: usize = 4;
 
             /// `x = a ^ w; x + lo32(x) * hi32(x)` on one register.
             #[inline(always)]
@@ -187,24 +191,72 @@ macro_rules! width {
                     }
                     close(&mut a, p.add(s * 64), m - s, p.add(n - 64), m, n)
                 } else {
-                    let mut st = Words([0u64; 64]);
-                    let st = st.0.as_mut_ptr();
-                    for c in 0..CHAINS {
-                        for r in 0..R {
-                            $storeu(st.add(8 * c + r * WPR) as *mut $v, start(c, r, ksv));
+                    // The state does not fit in registers.
+                    let nb = m / CHAINS;
+                    let rem = m - nb * CHAINS;
+                    if nb <= FUSE_MAX {
+                        // A few blocks: chains are independent until the merge (chain c
+                        // sees only stripes c mod 8), so two chains at a time run from
+                        // start to merge with their lanes in registers and no state
+                        // array. One chain at a time would be latency bound (four
+                        // registers in flight), and the state array costs 64 words of
+                        // stores and loads at each end: 513 B took 167 cycles against
+                        // 111 for 512.
+                        let nv = $set1(n as i64);
+                        let mut mv = [$set1(0); R];
+                        let mut c = 0;
+                        while c < CHAINS {
+                            let mut a = [[$set1(0); R]; 2];
+                            for k in 0..2 {
+                                for r in 0..R {
+                                    a[k][r] = start(c + k, r, ksv);
+                                }
+                            }
+                            for b in 0..nb {
+                                for k in 0..2 {
+                                    for r in 0..R {
+                                        a[k][r] = step(a[k][r], ldb(p.add((b * CHAINS + c + k) * 64), r));
+                                    }
+                                }
+                            }
+                            for k in 0..2 {
+                                if c + k < rem {
+                                    for r in 0..R {
+                                        a[k][r] = step(a[k][r], ldb(p.add((nb * CHAINS + c + k) * 64), r));
+                                    }
+                                }
+                                if c + k == rem {
+                                    for r in 0..R {
+                                        a[k][r] = step(a[k][r], $xor(ldb(p.add(n - 64), r), nv));
+                                    }
+                                }
+                                for r in 0..R {
+                                    mv[r] = $xor(mv[r], step(a[k][r], q(c + k, r)));
+                                }
+                            }
+                            c += 2;
                         }
-                    }
-                    let mut s = 0;
-                    while s + CHAINS <= m {
+                        mv
+                    } else {
+                        let mut st = Words([0u64; 64]);
+                        let st = st.0.as_mut_ptr();
                         for c in 0..CHAINS {
-                            let sp = st.add(8 * c);
                             for r in 0..R {
-                                $storeu(sp.add(r * WPR) as *mut $v, step(ld(sp, r), ldb(p.add((s + c) * 64), r)));
+                                $storeu(st.add(8 * c + r * WPR) as *mut $v, start(c, r, ksv));
                             }
                         }
-                        s += CHAINS;
+                        let mut s = 0;
+                        while s + CHAINS <= m {
+                            for c in 0..CHAINS {
+                                let sp = st.add(8 * c);
+                                for r in 0..R {
+                                    $storeu(sp.add(r * WPR) as *mut $v, step(ld(sp, r), ldb(p.add((s + c) * 64), r)));
+                                }
+                            }
+                            s += CHAINS;
+                        }
+                        close_mem(st, p.add(s * 64), m - s, p.add(n - 64), m, n)
                     }
-                    close_mem(st, p.add(s * 64), m - s, p.add(n - 64), m, n)
                 };
                 fin::<HI>(&mv, ks, n)
             }

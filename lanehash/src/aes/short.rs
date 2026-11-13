@@ -49,10 +49,6 @@ pub fn secrets(seed: u64) -> [u64; 8] {
 fn le64(p: &[u8], i: usize) -> u64 {
     u64::from_le_bytes(p[i..i + 8].try_into().unwrap())
 }
-#[inline(always)]
-fn le32(p: &[u8], i: usize) -> u64 {
-    u32::from_le_bytes(p[i..i + 4].try_into().unwrap()) as u64
-}
 
 /// Reference short path (`hash64` / `hash128` use the per-class functions below).
 #[inline(always)]

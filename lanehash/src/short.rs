@@ -43,10 +43,6 @@ fn mum(a: u64, b: u64) -> (u64, u64) {
 fn le64(p: &[u8], i: usize) -> u64 {
     u64::from_le_bytes(p[i..i + 8].try_into().unwrap())
 }
-#[inline(always)]
-fn le32(p: &[u8], i: usize) -> u64 {
-    u32::from_le_bytes(p[i..i + 4].try_into().unwrap()) as u64
-}
 
 /// Final folds: `lo` always, `hi` only for the 128-bit output; the length sits in
 /// different operands of the two.
