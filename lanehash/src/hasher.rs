@@ -48,18 +48,25 @@ impl LaneHasher {
             self.fill += bits;
         }
     }
-    /// Over 16 bytes. Out of line so the inlined `write` stays small in a map's probe loop.
-    #[inline(never)]
-    fn write_long(&mut self, bytes: &[u8]) {
-        let len = bytes.len();
-        if len <= super::spec::SHORT_MAX {
-            // the short path, its first-operand secret mixed with the accumulator
-            let ka = self.ka ^ self.acc;
-            self.acc = if len <= 32 { short64_le32(bytes, ka, self.kb) } else { short64_le64(bytes, ka, self.kb) };
+}
+
+/// A write of over 16 bytes: the new accumulator. Out of line so the inlined `write`
+/// stays small in a map's probe loop, and by value so the hasher itself stays in
+/// registers: behind a `&mut self` call its sponge fill is no longer a compile-time
+/// constant and every later write and `finish` goes through memory and branches.
+#[inline(never)]
+fn write_long(bytes: &[u8], acc: u64, ka: u64, kb: u64) -> u64 {
+    let len = bytes.len();
+    if len <= super::spec::SHORT_MAX {
+        // the short path, its first-operand secret mixed with the accumulator
+        if len <= 32 {
+            short64_le32(bytes, ka ^ acc, kb)
         } else {
-            let h = super::dispatch::hash64_keyed(bytes, self.ka, self.kb, self.kb ^ KS[1]);
-            self.acc = fold(h ^ self.acc, self.kb ^ len as u64);
+            short64_le64(bytes, ka ^ acc, kb)
         }
+    } else {
+        let h = super::dispatch::hash64_keyed(bytes, ka, kb, kb ^ KS[1]);
+        fold(h ^ acc, kb ^ len as u64)
     }
 }
 
@@ -68,7 +75,8 @@ impl Hasher for LaneHasher {
     fn write(&mut self, bytes: &[u8]) {
         let len = bytes.len();
         if len > 16 {
-            return self.write_long(bytes);
+            self.acc = write_long(bytes, self.acc, self.ka, self.kb);
+            return;
         }
         let (w0, w1) = words16(bytes);
         self.acc = fold(w0 ^ self.acc, w1 ^ self.kb ^ len as u64);
