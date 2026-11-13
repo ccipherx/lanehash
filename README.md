@@ -11,7 +11,7 @@ Both algorithms provide 64-bit and 128-bit hashing, streaming APIs, and `HashMap
 
 ## Highlights
 
-* **Fast:** up to 27 bytes/cycle at 64 KiB on Zen 4; the AES variant reaches up to 30 bytes/cycle with VAES.
+* **Fast:** up to 27 bytes/cycle at 64 KiB on the test CPU; the AES variant reaches up to 30 bytes/cycle with VAES.
 * **Competitive on short keys:** 1 to 31 byte inputs are approximately 17 cycles/hash in the rurban harness.
 * **Portable:** scalar fallback plus SSE2, AVX2, AVX-512, NEON, and wasm SIMD128 backends.
 * **Deterministic:** every backend produces identical output for the same input and seed.
@@ -28,7 +28,7 @@ Both algorithms provide 64-bit and 128-bit hashing, streaming APIs, and `HashMap
 |                      | `lanehash`                  | `lanehash::aes`                                     |
 | -------------------- | --------------------------- | --------------------------------------------------- |
 | Hardware requirement | None                        | AES-NI / VAES / Armv8 AES for hardware acceleration |
-| 64 KiB on Zen 4      | 27 B/cycle                  | 28 to 30 B/cycle                                    |
+| 64 KiB on the test CPU      | 27 B/cycle                  | 28 to 30 B/cycle                                    |
 | 1 to 31 B keys       | 17.2 cycles/hash            | 18.6 cycles/hash                                    |
 | HashMap workload     | 97.7 cycles/op              | 97.3 cycles/op                                      |
 | wasm32               | SIMD128 backend             | Software AES                                        |
@@ -131,7 +131,7 @@ behind the table below, whose rows are still named `lh2`, the function name befo
 
 ## Default algorithm
 
-Measured on an AMD Ryzen 5 7600 (Zen 4), using the same binary and buffers for all implementations. The default `cargo build --release` configuration was used, with runtime dispatch selecting AVX-512.
+Measured on using the same binary and buffers for all implementations. The default `cargo build --release` configuration was used, with runtime dispatch selecting AVX-512.
 
 | Input                  |     lanehash | xxh3 (AVX-512) | rapidhash v3 |
 | ---------------------- | -----------: | -------------: | -----------: |

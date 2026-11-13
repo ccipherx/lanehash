@@ -8,7 +8,7 @@ The crate root, `lanehash`, is the default algorithm. An independent AES-based v
 
 ## Highlights
 
-* **Fast bulk hashing:** up to ~27 bytes/cycle for the default algorithm and ~30 bytes/cycle for the AES variant on Zen 4.
+* **Fast bulk hashing:** up to ~27 bytes/cycle for the default algorithm and ~30 bytes/cycle for the AES variant on the test CPU.
 * **Competitive short-input performance:** optimized for the small keys common in hash tables.
 * **Portable:** scalar fallback plus SSE2, AVX2, AVX-512, NEON, and wasm SIMD backends.
 * **Deterministic:** every backend produces identical output for the same input and seed.
@@ -25,7 +25,7 @@ The crate root, `lanehash`, is the default algorithm. An independent AES-based v
 |                          | `lanehash`                  | `lanehash::aes`                         |
 | ------------------------ | --------------------------- | --------------------------------------- |
 | Hardware requirement     | None                        | Benefits from AES-NI / VAES / Armv8 AES |
-| 64 KiB throughput, Zen 4 | ~27 B/cycle                 | ~30 B/cycle with VAES                   |
+| 64 KiB throughput, the test CPU | ~27 B/cycle                 | ~30 B/cycle with VAES                   |
 | 1 to 31 B keys           | ~17.2 cycles/hash           | ~18.6 cycles/hash                       |
 | HashMap workload         | ~97.7 cycles/op             | ~97.3 cycles/op                         |
 | wasm32                   | SIMD128 backend             | Software AES                            |

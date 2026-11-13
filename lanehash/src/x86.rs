@@ -76,7 +76,7 @@ macro_rules! width {
 
             /// Merged lanes of `n >= 65` bytes at `p`. Inlined into `hash64` / `hash128` so
             /// the words reach the folds in registers (returned across a call: a 512-bit
-            /// stack store Zen 4 does not forward, 100 instead of 35 cycles at 128 B).
+            /// stack store the test CPU does not forward, 100 instead of 35 cycles at 128 B).
             #[inline(always)]
             unsafe fn lanes(p: *const u8, n: usize, ks: u64) -> Merged {
                 debug_assert!(n >= 65);

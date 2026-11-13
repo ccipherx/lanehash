@@ -260,7 +260,7 @@ LANEHASH_INLINE lanehash_v lanehash_vstep(lanehash_v a, lanehash_v w) {
     lanehash_v x = lanehash_xor(a, w);
     return lanehash_add(x, lanehash_mul(x, lanehash_srl32(x)));
 }
-/* merged lanes to memory in 128-bit pieces: Zen 4 does not forward a wider store to the
+/* merged lanes to memory in 128-bit pieces: the test CPU does not forward a wider store to the
  * 64-bit loads of the folds */
 LANEHASH_INLINE void lanehash_store_words(uint64_t *out, lanehash_v v) {
 #  if defined(LANEHASH_AVX512)

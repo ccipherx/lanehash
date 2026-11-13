@@ -22,7 +22,7 @@ Backends are chosen at compile time and all produce the same output:
 
 | flags | lanehash | lanehash_aes |
 |---|---|---|
-| `-march=native` on a Zen 4 / Sapphire Rapids | AVX-512F | VAES, two lanes per ymm |
+| `-march=native` on a CPU with AVX-512 | AVX-512F | VAES, two lanes per ymm |
 | `-mavx2` (+ `-mvaes -maes`) | AVX2 | VAES, two lanes per ymm |
 | `-maes` / none | SSE2 | AES-NI / T-table software AES |
 | `-DLANEHASH_PORTABLE` / `-DLANEHASH_AES_PORTABLE` | scalar | T-table software AES |

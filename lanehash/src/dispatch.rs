@@ -11,7 +11,7 @@ pub type Absorb = unsafe fn(&mut Words, *const u8, usize);
 pub type Finish = unsafe fn(&Words, *const u8, usize, *const u8, usize, u64) -> u128;
 
 /// Kernels return values in registers: an array returned through memory costs a 512-bit
-/// stack store that Zen 4 does not forward to the finaliser's loads.
+/// stack store that the test CPU does not forward to the finaliser's loads.
 #[derive(Clone, Copy)]
 pub struct Backend {
     pub name: &'static str,
