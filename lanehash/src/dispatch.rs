@@ -60,26 +60,43 @@ backend!(NEON, "neon", super::arm);
 #[cfg(all(target_arch = "wasm32", target_feature = "simd128", not(feature = "force-fallback")))]
 backend!(SIMD128, "simd128", super::wasm);
 
+/// The AVX-512 kernels need AVX-512F and VL, AVX2 and BMI2; the AVX2 kernels AVX2 and
+/// BMI2. `true` when the build enables them or, with `std`, when the CPU reports them.
+#[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
+#[inline(always)]
+pub fn has_avx512() -> bool {
+    if cfg!(all(target_feature = "avx512f", target_feature = "avx512vl", target_feature = "avx2", target_feature = "bmi2")) {
+        return true;
+    }
+    #[cfg(feature = "std")]
+    {
+        return std::is_x86_feature_detected!("avx512f") && std::is_x86_feature_detected!("avx512vl") && std::is_x86_feature_detected!("avx2") && std::is_x86_feature_detected!("bmi2");
+    }
+    #[allow(unreachable_code)]
+    false
+}
+#[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
+#[inline(always)]
+pub fn has_avx2() -> bool {
+    if cfg!(all(target_feature = "avx2", target_feature = "bmi2")) {
+        return true;
+    }
+    #[cfg(feature = "std")]
+    {
+        return std::is_x86_feature_detected!("avx2") && std::is_x86_feature_detected!("bmi2");
+    }
+    #[allow(unreachable_code)]
+    false
+}
+
 fn select() -> &'static Backend {
     #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
     {
-        #[cfg(feature = "std")]
-        {
-            if std::is_x86_feature_detected!("avx512f") {
-                return &AVX512;
-            }
-            if std::is_x86_feature_detected!("avx2") {
-                return &AVX2;
-            }
+        if has_avx512() {
+            return &AVX512;
         }
-        #[cfg(not(feature = "std"))]
-        {
-            if cfg!(target_feature = "avx512f") {
-                return &AVX512;
-            }
-            if cfg!(target_feature = "avx2") {
-                return &AVX2;
-            }
+        if has_avx2() {
+            return &AVX2;
         }
         return &SSE2;
     }
@@ -97,9 +114,27 @@ fn select() -> &'static Backend {
 
 static CACHE: AtomicUsize = AtomicUsize::new(0);
 
-/// The selected backend (detected once).
+/// The selected backend. Known at compile time when the build enables the features of
+/// the widest kernel (the call is then direct and can inline), detected once otherwise.
 #[inline(always)]
 pub fn backend() -> &'static Backend {
+    #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback"), target_feature = "avx512f", target_feature = "avx512vl", target_feature = "avx2", target_feature = "bmi2"))]
+    {
+        return &AVX512;
+    }
+    #[cfg(all(target_arch = "aarch64", not(feature = "force-fallback")))]
+    {
+        return &NEON;
+    }
+    #[cfg(all(target_arch = "wasm32", target_feature = "simd128", not(feature = "force-fallback")))]
+    {
+        return &SIMD128;
+    }
+    #[allow(unreachable_code)]
+    backend_detected()
+}
+#[inline(always)]
+fn backend_detected() -> &'static Backend {
     let p = CACHE.load(Ordering::Relaxed);
     if p != 0 {
         // SAFETY: only ever stores a `&'static Backend`.

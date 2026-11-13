@@ -28,10 +28,10 @@ fn backends() -> Vec<&'static dispatch::Backend> {
     #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
     {
         v.push(&dispatch::SSE2);
-        if std::is_x86_feature_detected!("avx2") {
+        if dispatch::has_avx2() {
             v.push(&dispatch::AVX2);
         }
-        if std::is_x86_feature_detected!("avx512f") {
+        if dispatch::has_avx512() {
             v.push(&dispatch::AVX512);
         }
     }
