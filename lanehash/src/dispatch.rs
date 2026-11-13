@@ -110,23 +110,60 @@ pub fn backend() -> &'static Backend {
     b
 }
 
+/// `hash64` with the secrets of `spec::keys` already computed.
+#[inline(always)]
+pub fn hash64_keyed(bytes: &[u8], ka: u64, kb: u64, ks: u64) -> u64 {
+    let n = bytes.len();
+    if n <= spec::SHORT_MAX {
+        return short::short64_keyed(bytes, ka, kb);
+    }
+    // SAFETY: `bytes` is a valid slice of `n >= 65` bytes; the kernels read within it.
+    unsafe { (backend().hash64)(bytes.as_ptr(), n, ks) }
+}
+/// `hash128` with the secrets of `spec::keys` already computed.
+#[inline(always)]
+pub fn hash128_keyed(bytes: &[u8], ka: u64, kb: u64, ks: u64) -> u128 {
+    let n = bytes.len();
+    if n <= spec::SHORT_MAX {
+        return short::short128_keyed(bytes, ka, kb);
+    }
+    // SAFETY: as in `hash64_keyed`.
+    unsafe { (backend().hash128)(bytes.as_ptr(), n, ks) }
+}
 /// 64-bit lanehash of `bytes` under `seed`.
 #[inline(always)]
 pub fn hash64(bytes: &[u8], seed: u64) -> u64 {
-    let n = bytes.len();
-    if n <= spec::SHORT_MAX {
-        return short::short64(bytes, seed);
-    }
-    // SAFETY: `bytes` is a valid slice of `n >= 65` bytes; the kernels read within it.
-    unsafe { (backend().hash64)(bytes.as_ptr(), n, spec::ks(seed)) }
+    let (ka, kb, ks) = spec::keys(seed);
+    hash64_keyed(bytes, ka, kb, ks)
 }
 /// 128-bit lanehash of `bytes` under `seed`; its low half is [`hash64`].
 #[inline(always)]
 pub fn hash128(bytes: &[u8], seed: u64) -> u128 {
-    let n = bytes.len();
-    if n <= spec::SHORT_MAX {
-        return short::short128(bytes, seed);
+    let (ka, kb, ks) = spec::keys(seed);
+    hash128_keyed(bytes, ka, kb, ks)
+}
+
+/// A seed with its secrets computed once, for hashing many inputs under one seed:
+/// `Keyed::new(seed).hash64(b) == hash64(b, seed)` without the seed multiply per call.
+#[derive(Clone, Copy, Debug)]
+pub struct Keyed {
+    ka: u64,
+    kb: u64,
+    ks: u64,
+}
+impl Keyed {
+    pub const fn new(seed: u64) -> Self {
+        let (ka, kb, ks) = spec::keys(seed);
+        Keyed { ka, kb, ks }
     }
-    // SAFETY: as in `hash64`.
-    unsafe { (backend().hash128)(bytes.as_ptr(), n, spec::ks(seed)) }
+    /// Equal to [`hash64`] under the seed given to `new`.
+    #[inline(always)]
+    pub fn hash64(&self, bytes: &[u8]) -> u64 {
+        hash64_keyed(bytes, self.ka, self.kb, self.ks)
+    }
+    /// Equal to [`hash128`] under the seed given to `new`.
+    #[inline(always)]
+    pub fn hash128(&self, bytes: &[u8]) -> u128 {
+        hash128_keyed(bytes, self.ka, self.kb, self.ks)
+    }
 }

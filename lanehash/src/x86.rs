@@ -1,7 +1,7 @@
 //! x86-64 kernels of the long path, one module per vector width, all equal to `spec`.
 //! AVX2 and AVX-512 keep the 64-word state in registers; SSE2 keeps it in a 64-byte
 //! aligned stack array. `absorb` / `finish` serve `Stream` over caller-owned state.
-use super::spec::{finish_lanes, Merged, Words, BLOCK, CHAINS, CT, Q, STRIPE};
+use super::spec::{finish_lanes, Merged, Words, BLOCK, CHAINS, CT, QT, STRIPE};
 use core::arch::x86_64::*;
 
 macro_rules! width {
@@ -43,16 +43,13 @@ macro_rules! width {
             unsafe fn start(c: usize, r: usize, ksv: $v) -> $v {
                 $add(ld(CT.as_ptr().add(8 * c), r), ksv)
             }
-            /// `Q` in `R` registers. Loops, never `core::array::from_fn`, in this module: a
-            /// closure does not inherit the function's target features, so without AVX in the
-            /// build its intrinsics go through memory (+360 cycles per call).
+            /// Chain `c`'s merge constants, register `r`. Loops, never
+            /// `core::array::from_fn`, in this module: a closure does not inherit the
+            /// function's target features, so without AVX in the build its intrinsics go
+            /// through memory (+360 cycles per call).
             #[inline(always)]
-            unsafe fn qv() -> [$v; R] {
-                let mut q = [$set1(0); R];
-                for r in 0..R {
-                    q[r] = ld(Q.as_ptr(), r);
-                }
-                q
+            unsafe fn q(c: usize, r: usize) -> $v {
+                ld(QT.as_ptr().add(8 * c), r)
             }
 
             /// `m < 8`: stripe step and merge step per chain in registers. Latency-bound,
@@ -61,15 +58,15 @@ macro_rules! width {
             #[inline(always)]
             #[allow(dead_code)] // unused in the avx512 module itself
             pub(super) unsafe fn small(p: *const u8, n: usize, m: usize, ks: u64) -> Merged {
-                let (ksv, nv, q) = ($set1(ks as i64), $set1(n as i64), qv());
+                let (ksv, nv) = ($set1(ks as i64), $set1(n as i64));
                 let mut mv = [$set1(0); R];
                 for s in 0..m {
                     for r in 0..R {
-                        mv[r] = $xor(mv[r], step(step(start(s, r, ksv), ldb(p.add(s * 64), r)), q[r]));
+                        mv[r] = $xor(mv[r], step(step(start(s, r, ksv), ldb(p.add(s * 64), r)), q(s, r)));
                     }
                 }
                 for r in 0..R {
-                    mv[r] = $xor(mv[r], step(step(start(m, r, ksv), $xor(ldb(p.add(n - 64), r), nv)), q[r]));
+                    mv[r] = $xor(mv[r], step(step(start(m, r, ksv), $xor(ldb(p.add(n - 64), r), nv)), q(m, r)));
                 }
                 store(&mv)
             }
@@ -84,7 +81,7 @@ macro_rules! width {
                 if m < CHAINS {
                     return super::$smallm::small(p, n, m, ks);
                 }
-                let (ksv, nv, q) = ($set1(ks as i64), $set1(n as i64), qv());
+                let (ksv, nv) = ($set1(ks as i64), $set1(n as i64));
                 let mut mv = [$set1(0); R];
                 if $reg {
                     let mut a = [[$set1(0); R]; CHAINS];
@@ -119,7 +116,7 @@ macro_rules! width {
                     }
                     for c in 0..CHAINS {
                         for r in 0..R {
-                            mv[r] = $xor(mv[r], step(a[c][r], q[r]));
+                            mv[r] = $xor(mv[r], step(a[c][r], q(c, r)));
                         }
                     }
                 } else {
@@ -153,7 +150,7 @@ macro_rules! width {
                     }
                     for c in 0..CHAINS {
                         for r in 0..R {
-                            mv[r] = $xor(mv[r], step(ld(st.add(8 * c), r), q[r]));
+                            mv[r] = $xor(mv[r], step(ld(st.add(8 * c), r), q(c, r)));
                         }
                     }
                 }
@@ -201,11 +198,10 @@ macro_rules! width {
                     $storeu(sp.add(8 * c + k * WPR) as *mut $v, step(ld(sp.add(8 * c), k), $xor(ldb(closing, k), nv)));
                 }
                 let used = ((n - 1) / STRIPE + 1).min(CHAINS);
-                let q = qv();
                 let mut mv = [$set1(0); R];
                 for c in 0..used {
                     for k in 0..R {
-                        mv[k] = $xor(mv[k], step(ld(sp.add(8 * c), k), q[k]));
+                        mv[k] = $xor(mv[k], step(ld(sp.add(8 * c), k), q(c, k)));
                     }
                 }
                 finish_lanes::<true>(&store(&mv), ks, n)

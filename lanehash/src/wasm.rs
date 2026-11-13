@@ -1,6 +1,6 @@
 //! wasm32 simd128 kernels of the long path: `i32x4.shuffle` pairs the even and odd
 //! dwords of two registers, `i64x2.extmul_{low,high}_i32x4_u` multiplies them.
-use super::spec::{finish_lanes, Merged, Words, BLOCK, CHAINS, CT, Q, STRIPE};
+use super::spec::{finish_lanes, Merged, Words, BLOCK, CHAINS, CT, QT, STRIPE};
 use core::arch::wasm32::*;
 
 #[inline(always)]
@@ -27,11 +27,11 @@ unsafe fn stripe(st: *mut u64, c: usize, src: *const u8, nv: v128) {
 }
 #[inline(always)]
 unsafe fn merge(st: *const u64, used: usize) -> Merged {
-    let q: [v128; 4] = core::array::from_fn(|r| ld(Q.as_ptr().add(2 * r) as *const u8));
     let mut mv = [i64x2_splat(0); 4];
     for c in 0..used {
         for h in 0..2 {
-            let (b0, b1) = step2(v128_load(st.add(8 * c + 4 * h) as *const v128), v128_load(st.add(8 * c + 4 * h + 2) as *const v128), q[2 * h], q[2 * h + 1]);
+            let (q0, q1) = (ld(QT.as_ptr().add(8 * c + 4 * h) as *const u8), ld(QT.as_ptr().add(8 * c + 4 * h + 2) as *const u8));
+            let (b0, b1) = step2(v128_load(st.add(8 * c + 4 * h) as *const v128), v128_load(st.add(8 * c + 4 * h + 2) as *const v128), q0, q1);
             mv[2 * h] = v128_xor(mv[2 * h], b0);
             mv[2 * h + 1] = v128_xor(mv[2 * h + 1], b1);
         }
@@ -49,7 +49,6 @@ unsafe fn lanes(p: *const u8, n: usize, ks: u64) -> Merged {
     let m = (n - 1) / STRIPE;
     let ksv = i64x2_splat(ks as i64);
     if m < CHAINS {
-        let q: [v128; 4] = core::array::from_fn(|r| ld(Q.as_ptr().add(2 * r) as *const u8));
         let mut mv = [i64x2_splat(0); 4];
         let mut one = |c: usize, src: *const u8, nv: v128| {
             for h in 0..2 {
@@ -58,7 +57,8 @@ unsafe fn lanes(p: *const u8, n: usize, ks: u64) -> Merged {
                 let a0 = i64x2_add(ld(CT.as_ptr().add(8 * c + 4 * h) as *const u8), ksv);
                 let a1 = i64x2_add(ld(CT.as_ptr().add(8 * c + 4 * h + 2) as *const u8), ksv);
                 let (a0, a1) = step2(a0, a1, w0, w1);
-                let (b0, b1) = step2(a0, a1, q[2 * h], q[2 * h + 1]);
+                let (q0, q1) = (ld(QT.as_ptr().add(8 * c + 4 * h) as *const u8), ld(QT.as_ptr().add(8 * c + 4 * h + 2) as *const u8));
+                let (b0, b1) = step2(a0, a1, q0, q1);
                 mv[2 * h] = v128_xor(mv[2 * h], b0);
                 mv[2 * h + 1] = v128_xor(mv[2 * h + 1], b1);
             }

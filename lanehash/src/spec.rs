@@ -7,10 +7,13 @@
 //!
 //! 0–64 bytes: `short.rs`. `n >= 65`: `m = (n - 1) / 64` leading stripes, then the
 //! closing stripe `[n - 64, n)` with `w ^ n` into chain `m mod 8`. Merge: each chain that
-//! received data takes one more step with `Q` (a plain XOR would let last-stripe
-//! differences of different chains cancel), the chains are XORed lane-wise, four folds
-//! with distinct secrets, then `fold(h ^ n, ks ^ S[8])`; the 128-bit output adds a
-//! second merge over another lane pairing. Constants are consecutive words of `C`.
+//! received data takes one more step with its own constants `QT[8 c + i]` (a plain XOR
+//! would let last-stripe differences of different chains cancel, and one constant per
+//! lane shared by all chains let two chains be exchanged or cancelled whenever the
+//! carries of `(CT + ks) ^ (CT' + ks)` were guessed, 1 seed in 8192 for the best pair),
+//! the chains are XORed lane-wise, four folds with distinct secrets, then
+//! `fold(h ^ n, ks ^ S[8])`. The 128-bit output adds a second merge over another lane
+//! pairing. Constants are consecutive words of `C`.
 use crate::constants::C;
 
 const fn lo64(c: &[u8; 16]) -> u64 {
@@ -49,11 +52,27 @@ pub const S: [u64; 19] = {
     s
 };
 
+/// The second merge's secret for each lane: `S[10..18)` in lane order (the pairing is
+/// lanes (0,2) (1,3) (4,6) (5,7)), for kernels that XOR the secrets on the vectors.
+pub const S2L: [u64; 8] = [S[10], S[12], S[11], S[13], S[14], S[16], S[15], S[17]];
+
 /// Chain start values, words of `C[12..44)`.
 pub const CT: [u64; 64] = words(12);
 
 /// Merge-step constants, words of `C[44..48)`.
 pub const Q: [u64; 8] = words(44);
+
+/// Merge-step constants per chain: chain `c` lane `i` uses `Q[(i + c) mod 8]`, so the
+/// eight chains meet eight different constants in every lane.
+pub const QT: [u64; 64] = {
+    let mut t = [0u64; 64];
+    let mut j = 0;
+    while j < 64 {
+        t[j] = Q[(j % 8 + j / 8) % 8];
+        j += 1;
+    }
+    t
+};
 
 pub const STRIPE: usize = 64;
 pub const CHAINS: usize = 8;
@@ -117,6 +136,17 @@ pub fn ks(seed: u64) -> u64 {
     fold(seed ^ SEED0, SEED1)
 }
 
+/// The secrets of one seed: `(ka, kb, ks)`. With `(lo, hi)` the 128-bit product
+/// `(seed ^ SEED0) * SEED1`: `ks = lo ^ hi` keys the long path, `ka = lo ^ KS[0]` and
+/// `kb = ks ^ KS[1]` key the first and second multiply operands of the short path. The
+/// constants keep the one seed with a zero product as good as any other.
+#[inline(always)]
+pub const fn keys(seed: u64) -> (u64, u64, u64) {
+    let r = ((seed ^ SEED0) as u128).wrapping_mul(SEED1 as u128);
+    let (lo, hi) = (r as u64, (r >> 64) as u64);
+    (lo ^ crate::short::KS[0], lo ^ hi ^ crate::short::KS[1], lo ^ hi)
+}
+
 pub fn init(ks: u64) -> State {
     core::array::from_fn(|c| {
         core::array::from_fn(|i| CT[8 * c + i].wrapping_add(ks))
@@ -156,9 +186,9 @@ pub fn finish(a: &State, leading: &[u8], closing: &[u8; 64], n: usize) -> Merged
     let used = ((n - 1) / STRIPE + 1).min(CHAINS);
     let mut m = Merged([0u64; 8]);
 
-    for ch in &a[..used] {
+    for (c, ch) in a[..used].iter().enumerate() {
         for i in 0..8 {
-            m.0[i] ^= step(ch[i], Q[i]);
+            m.0[i] ^= step(ch[i], QT[8 * c + i]);
         }
     }
 
@@ -221,7 +251,7 @@ pub fn lanes(bytes: &[u8], ks: u64) -> Merged {
             for i in 0..8 {
                 mv.0[i] ^= step(
                     step(CT[8 * s + i].wrapping_add(ks), le64(c, i) ^ x),
-                    Q[i],
+                    QT[8 * s + i],
                 );
             }
         }

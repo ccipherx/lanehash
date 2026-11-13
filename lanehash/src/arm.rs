@@ -1,7 +1,7 @@
 //! aarch64 NEON kernels of the long path: `uzp1`/`uzp2` pair the even and odd dwords
-//! of two registers, `umlal`/`umlal2` multiply-accumulate them onto `x`. Compile-checked
-//! only (no hardware available).
-use super::spec::{finish_lanes, Merged, Words, BLOCK, CHAINS, CT, Q, STRIPE};
+//! of two registers, `umlal`/`umlal2` multiply-accumulate them onto `x`. Type-checked
+//! for aarch64 only: it has not run on hardware or under an emulator.
+use super::spec::{finish_lanes, Merged, Words, BLOCK, CHAINS, CT, QT, STRIPE};
 use core::arch::aarch64::*;
 
 /// `x = a ^ w; x + lo32(x) * hi32(x)` on a register pair.
@@ -26,11 +26,11 @@ unsafe fn stripe(st: *mut u64, c: usize, src: *const u8, nv: uint64x2_t) {
 }
 #[inline(always)]
 unsafe fn merge(st: *const u64, used: usize) -> Merged {
-    let q: [uint64x2_t; 4] = core::array::from_fn(|r| vld1q_u64(Q.as_ptr().add(2 * r)));
     let mut mv = [vdupq_n_u64(0); 4];
     for c in 0..used {
         for h in 0..2 {
-            let (b0, b1) = step2(vld1q_u64(st.add(8 * c + 4 * h)), vld1q_u64(st.add(8 * c + 4 * h + 2)), q[2 * h], q[2 * h + 1]);
+            let (q0, q1) = (vld1q_u64(QT.as_ptr().add(8 * c + 4 * h)), vld1q_u64(QT.as_ptr().add(8 * c + 4 * h + 2)));
+            let (b0, b1) = step2(vld1q_u64(st.add(8 * c + 4 * h)), vld1q_u64(st.add(8 * c + 4 * h + 2)), q0, q1);
             mv[2 * h] = veorq_u64(mv[2 * h], b0);
             mv[2 * h + 1] = veorq_u64(mv[2 * h + 1], b1);
         }
@@ -49,7 +49,6 @@ unsafe fn lanes(p: *const u8, n: usize, ks: u64) -> Merged {
     let ksv = vdupq_n_u64(ks);
     if m < CHAINS {
         // every chain sees one stripe: stripe step and merge step in registers
-        let q: [uint64x2_t; 4] = core::array::from_fn(|r| vld1q_u64(Q.as_ptr().add(2 * r)));
         let mut mv = [vdupq_n_u64(0); 4];
         let mut one = |c: usize, src: *const u8, nv: uint64x2_t| {
             for h in 0..2 {
@@ -58,7 +57,8 @@ unsafe fn lanes(p: *const u8, n: usize, ks: u64) -> Merged {
                 let a0 = vaddq_u64(vld1q_u64(CT.as_ptr().add(8 * c + 4 * h)), ksv);
                 let a1 = vaddq_u64(vld1q_u64(CT.as_ptr().add(8 * c + 4 * h + 2)), ksv);
                 let (a0, a1) = step2(a0, a1, w0, w1);
-                let (b0, b1) = step2(a0, a1, q[2 * h], q[2 * h + 1]);
+                let (q0, q1) = (vld1q_u64(QT.as_ptr().add(8 * c + 4 * h)), vld1q_u64(QT.as_ptr().add(8 * c + 4 * h + 2)));
+                let (b0, b1) = step2(a0, a1, q0, q1);
                 mv[2 * h] = veorq_u64(mv[2 * h], b0);
                 mv[2 * h + 1] = veorq_u64(mv[2 * h + 1], b1);
             }
@@ -94,6 +94,17 @@ unsafe fn lanes(p: *const u8, n: usize, ks: u64) -> Merged {
     merge(st, CHAINS)
 }
 
+/// 64-bit hash of `n >= 65` bytes at `p` (`ks` from `spec::ks`).
+#[target_feature(enable = "neon")]
+pub unsafe fn hash64(p: *const u8, n: usize, ks: u64) -> u64 {
+    finish_lanes::<false>(&lanes(p, n, ks), ks, n) as u64
+}
+/// 128-bit hash of `n >= 65` bytes at `p`.
+#[target_feature(enable = "neon")]
+pub unsafe fn hash128(p: *const u8, n: usize, ks: u64) -> u128 {
+    finish_lanes::<true>(&lanes(p, n, ks), ks, n)
+}
+
 /// Streaming: absorb `nblocks` whole leading blocks at `p` into `st`.
 #[target_feature(enable = "neon")]
 pub unsafe fn absorb(st: &mut Words, p: *const u8, nblocks: usize) {
@@ -107,7 +118,7 @@ pub unsafe fn absorb(st: &mut Words, p: *const u8, nblocks: usize) {
 
 /// Streaming: the 128-bit hash from `st` (`spec::finish`).
 #[target_feature(enable = "neon")]
-pub unsafe fn finish(st: &Words, leading: *const u8, r: usize, closing: *const u8, n: usize) -> Merged {
+pub unsafe fn finish(st: &Words, leading: *const u8, r: usize, closing: *const u8, n: usize, ks: u64) -> u128 {
     let mut w = Words(st.0);
     let z = vdupq_n_u64(0);
     for c in 0..r {

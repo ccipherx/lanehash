@@ -7,8 +7,8 @@
 //! AES-lane function lives in [`aes`] with the same shape of API; it is faster only in
 //! bulk on machines with VAES.
 //!
-//! Public API: [`hash64`], [`hash128`], [`Stream`] for incremental hashing, and
-//! [`FixedState`] / [`RandomState`] for `HashMap`. The hidden modules are implementation
+//! Public API: [`hash64`], [`hash128`], [`Keyed`] for many inputs under one seed,
+//! [`Stream`] for incremental hashing, and [`FixedState`] / [`RandomState`] for `HashMap`. The hidden modules are implementation
 //! detail, kept public for the reference tests and the benchmark harness.
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::needless_range_loop)]
@@ -36,7 +36,7 @@ pub mod arm;
 pub mod wasm;
 pub mod aes;
 
-pub use dispatch::{hash128, hash64};
+pub use dispatch::{hash128, hash64, Keyed};
 pub use hasher::{FixedState, LaneHasher};
 #[cfg(feature = "std")]
 pub use hasher::RandomState;
