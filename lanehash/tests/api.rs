@@ -51,6 +51,16 @@ fn every_backend_equals_the_reference() {
             let want = reference128(b, seed);
             assert_eq!(hash128(b, seed), want, "dispatched n={n} seed={seed:#x}");
             assert_eq!(hash64(b, seed) as u128, want & u64::MAX as u128, "hash64 n={n}");
+            if n > 16 && n <= spec::SHORT_MAX {
+                // the class functions of every backend (BMI2 builds of the same source)
+                let (ka, kb, _) = spec::keys(seed);
+                for be in backends() {
+                    let got = unsafe { if n <= 32 { (be.short128_le32)(b, ka, kb) } else { (be.short128_le64)(b, ka, kb) } };
+                    assert_eq!(got, want, "{} short n={n}", be.name);
+                    let got = unsafe { if n <= 32 { (be.short64_le32)(b, ka, kb) } else { (be.short64_le64)(b, ka, kb) } };
+                    assert_eq!(got as u128, want & u64::MAX as u128, "{} short64 n={n}", be.name);
+                }
+            }
             if n > spec::SHORT_MAX {
                 let ks = spec::ks(seed);
                 for be in backends() {
@@ -113,6 +123,27 @@ fn keyed_and_fixed_entry_points_equal_the_one_shot_function() {
             )*};
         }
         fixed!(0 1 2 3 4 5 7 8 9 12 15 16 17 20 24 31 32 33 40 48 63 64 65 100 128 513);
+    }
+}
+
+/// The BMI2 builds of the 17–64 byte classes equal the plain ones.
+#[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
+#[test]
+fn bmi2_short_classes_equal_the_reference() {
+    if !std::is_x86_feature_detected!("bmi2") {
+        return;
+    }
+    let buf = data(64);
+    for &seed in &[0u64, 1, 0x9E37_79B9_7F4A_7C15, u64::MAX] {
+        let (ka, kb, _) = spec::keys(seed);
+        for n in 17..=64 {
+            let b = &buf[..n];
+            let want = spec::hash128(b, seed);
+            let got = unsafe { if n <= 32 { lanehash::short::bmi2::short128_le32(b, ka, kb) } else { lanehash::short::bmi2::short128_le64(b, ka, kb) } };
+            assert_eq!(got, want, "n={n}");
+            let got = unsafe { if n <= 32 { lanehash::short::bmi2::short64_le32(b, ka, kb) } else { lanehash::short::bmi2::short64_le64(b, ka, kb) } };
+            assert_eq!(got, want as u64, "n={n}");
+        }
     }
 }
 

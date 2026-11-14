@@ -158,15 +158,80 @@ pub fn short128_le64(p: &[u8], ka: u64, kb: u64) -> u128 {
     class_le64::<true>(p, ka, kb)
 }
 
+/// The 17–32 and 33–64 byte classes compiled with BMI2, selected at run time through the
+/// backend table. In a build without `-C target-cpu`, the 128-bit products otherwise go
+/// through `mul` with its fixed registers: 46 instructions instead of 25 at 32 bytes and
+/// 100 instead of 61 at 64. Measured: 48 B 28 to 26 cycles, 64 B 29 to 26, mixed 17–64 B
+/// 37 to 35, at 1.5 cycles more latency at 32 B. A feature test with direct calls had
+/// the same latency and half the gain.
+#[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
+pub mod bmi2 {
+    use super::{class_le32, class_le64};
+    #[target_feature(enable = "bmi2")]
+    #[inline(never)]
+    pub unsafe fn short64_le32(p: &[u8], ka: u64, kb: u64) -> u64 {
+        class_le32::<false>(p, ka, kb) as u64
+    }
+    #[target_feature(enable = "bmi2")]
+    #[inline(never)]
+    pub unsafe fn short64_le64(p: &[u8], ka: u64, kb: u64) -> u64 {
+        class_le64::<false>(p, ka, kb) as u64
+    }
+    #[target_feature(enable = "bmi2")]
+    #[inline(never)]
+    pub unsafe fn short128_le32(p: &[u8], ka: u64, kb: u64) -> u128 {
+        class_le32::<true>(p, ka, kb)
+    }
+    #[target_feature(enable = "bmi2")]
+    #[inline(never)]
+    pub unsafe fn short128_le64(p: &[u8], ka: u64, kb: u64) -> u128 {
+        class_le64::<true>(p, ka, kb)
+    }
+}
+
+/// 64-bit hash of 17 to 64 bytes: the class functions of the selected backend, or the
+/// ones above when the build itself has BMI2 or the target has no such choice.
+#[inline(always)]
+pub fn short64_mid(p: &[u8], ka: u64, kb: u64) -> u64 {
+    debug_assert!(p.len() > 16 && p.len() <= 64);
+    #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback"), not(target_feature = "bmi2")))]
+    {
+        let b = crate::dispatch::backend();
+        // SAFETY: a backend lists the BMI2 classes only when the CPU has BMI2.
+        return unsafe { if p.len() <= 32 { (b.short64_le32)(p, ka, kb) } else { (b.short64_le64)(p, ka, kb) } };
+    }
+    #[allow(unreachable_code)]
+    if p.len() <= 32 {
+        short64_le32(p, ka, kb)
+    } else {
+        short64_le64(p, ka, kb)
+    }
+}
+/// 128-bit form of [`short64_mid`].
+#[inline(always)]
+pub fn short128_mid(p: &[u8], ka: u64, kb: u64) -> u128 {
+    debug_assert!(p.len() > 16 && p.len() <= 64);
+    #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback"), not(target_feature = "bmi2")))]
+    {
+        let b = crate::dispatch::backend();
+        // SAFETY: as in `short64_mid`.
+        return unsafe { if p.len() <= 32 { (b.short128_le32)(p, ka, kb) } else { (b.short128_le64)(p, ka, kb) } };
+    }
+    #[allow(unreachable_code)]
+    if p.len() <= 32 {
+        short128_le32(p, ka, kb)
+    } else {
+        short128_le64(p, ka, kb)
+    }
+}
+
 /// 64-bit hash of `p.len() <= 64` bytes under the secrets `(ka, kb)`.
 #[inline(always)]
 pub fn short64_keyed(p: &[u8], ka: u64, kb: u64) -> u64 {
     if p.len() <= 16 {
         short64_le16(p, ka, kb)
-    } else if p.len() <= 32 {
-        short64_le32(p, ka, kb)
     } else {
-        short64_le64(p, ka, kb)
+        short64_mid(p, ka, kb)
     }
 }
 /// 128-bit hash of `p.len() <= 64` bytes under the secrets; its low half is
@@ -175,10 +240,8 @@ pub fn short64_keyed(p: &[u8], ka: u64, kb: u64) -> u64 {
 pub fn short128_keyed(p: &[u8], ka: u64, kb: u64) -> u128 {
     if p.len() <= 16 {
         short128_le16(p, ka, kb)
-    } else if p.len() <= 32 {
-        short128_le32(p, ka, kb)
     } else {
-        short128_le64(p, ka, kb)
+        short128_mid(p, ka, kb)
     }
 }
 

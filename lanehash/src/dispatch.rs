@@ -9,6 +9,9 @@ pub type Hash64 = unsafe fn(*const u8, usize, u64) -> u64;
 pub type Hash128 = unsafe fn(*const u8, usize, u64) -> u128;
 pub type Absorb = unsafe fn(&mut Words, *const u8, usize);
 pub type Finish = unsafe fn(&Words, *const u8, usize, *const u8, usize, u64) -> u128;
+/// A short class under the secrets `(ka, kb)` (`short.rs`).
+pub type Short64 = unsafe fn(&[u8], u64, u64) -> u64;
+pub type Short128 = unsafe fn(&[u8], u64, u64) -> u128;
 
 /// Kernels return values in registers: an array returned through memory costs a 512-bit
 /// stack store that the test CPU does not forward to the finaliser's loads.
@@ -21,6 +24,11 @@ pub struct Backend {
     pub absorb: Absorb,
     /// Streaming: the 128-bit hash after the remaining stripes and the closing stripe.
     pub finish: Finish,
+    /// The 17–32 and 33–64 byte classes: compiled with BMI2 where the backend implies it.
+    pub short64_le32: Short64,
+    pub short64_le64: Short64,
+    pub short128_le32: Short128,
+    pub short128_le64: Short128,
 }
 
 unsafe fn hash64_spec(p: *const u8, n: usize, ks: u64) -> u64 {
@@ -38,27 +46,48 @@ unsafe fn finish_spec(w: &Words, leading: *const u8, r: usize, closing: *const u
     let m = spec::finish(&w.to_state(), core::slice::from_raw_parts(leading, r * spec::STRIPE), &*(closing as *const [u8; 64]), n);
     finish_lanes::<true>(&m, ks, n)
 }
-pub const SPEC: Backend = Backend { name: "spec", hash64: hash64_spec, hash128: hash128_spec, absorb: absorb_spec, finish: finish_spec };
+pub const SPEC: Backend = Backend {
+    name: "spec",
+    hash64: hash64_spec,
+    hash128: hash128_spec,
+    absorb: absorb_spec,
+    finish: finish_spec,
+    short64_le32: short::short64_le32,
+    short64_le64: short::short64_le64,
+    short128_le32: short::short128_le32,
+    short128_le64: short::short128_le64,
+};
 
 #[allow(unused_macros)] // unused on targets with only the reference backend
 macro_rules! backend {
-    ($name:ident, $s:literal, $m:path) => {
+    ($name:ident, $s:literal, $m:path, $sh:path) => {
         pub const $name: Backend = {
             use $m as k;
-            Backend { name: $s, hash64: k::hash64, hash128: k::hash128, absorb: k::absorb, finish: k::finish }
+            use $sh as sh;
+            Backend {
+                name: $s,
+                hash64: k::hash64,
+                hash128: k::hash128,
+                absorb: k::absorb,
+                finish: k::finish,
+                short64_le32: sh::short64_le32,
+                short64_le64: sh::short64_le64,
+                short128_le32: sh::short128_le32,
+                short128_le64: sh::short128_le64,
+            }
         };
     };
 }
 #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
-backend!(SSE2, "sse2", super::x86::sse2);
+backend!(SSE2, "sse2", super::x86::sse2, super::short);
 #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
-backend!(AVX2, "avx2", super::x86::avx2);
+backend!(AVX2, "avx2", super::x86::avx2, super::short::bmi2);
 #[cfg(all(target_arch = "x86_64", not(feature = "force-fallback")))]
-backend!(AVX512, "avx512", super::x86::avx512);
+backend!(AVX512, "avx512", super::x86::avx512, super::short::bmi2);
 #[cfg(all(target_arch = "aarch64", not(feature = "force-fallback")))]
-backend!(NEON, "neon", super::arm);
+backend!(NEON, "neon", super::arm, super::short);
 #[cfg(all(target_arch = "wasm32", target_feature = "simd128", not(feature = "force-fallback")))]
-backend!(SIMD128, "simd128", super::wasm);
+backend!(SIMD128, "simd128", super::wasm, super::short);
 
 /// The AVX-512 kernels need AVX-512F and VL, AVX2 and BMI2; the AVX2 kernels AVX2 and
 /// BMI2. `true` when the build enables them or, with `std`, when the CPU reports them.

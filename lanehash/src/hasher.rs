@@ -8,7 +8,7 @@
 //! can be set to 0 or to all ones by the input, and either value erases the accumulator,
 //! seed included. Integer writes and byte writes do not commute with themselves, but a
 //! pending integer may be folded after a later byte write, as in foldhash.
-use super::short::{short64_le32, short64_le64, words16, KS, ROT};
+use super::short::{short64_mid, words16, KS, ROT};
 use super::spec::{fold, keys};
 use core::hash::{BuildHasher, Hasher};
 
@@ -59,11 +59,7 @@ fn write_long(bytes: &[u8], acc: u64, ka: u64, kb: u64) -> u64 {
     let len = bytes.len();
     if len <= super::spec::SHORT_MAX {
         // the short path, its first-operand secret mixed with the accumulator
-        if len <= 32 {
-            short64_le32(bytes, ka ^ acc, kb)
-        } else {
-            short64_le64(bytes, ka ^ acc, kb)
-        }
+        short64_mid(bytes, ka ^ acc, kb)
     } else {
         let h = super::dispatch::hash64_keyed(bytes, ka, kb, kb ^ KS[1]);
         fold(h ^ acc, kb ^ len as u64)
