@@ -51,13 +51,13 @@ Cycles per hash for short inputs, bytes per cycle for long ones, measured on one
 | 4 KiB | 21.8 B/c | 24.3 B/c | 8.1 B/c | 13.4 B/c | 5.5 B/c | 22.2 B/c |
 | 64 KiB | 26.7 B/c | 30.2 B/c | 8.2 B/c | 18.4 B/c | 5.9 B/c | 24.6 B/c |
 
-Where it is weaker: fixed-length keys of 16 bytes or less (foldhash is about twice as fast there), and latency from 65 to 256 bytes (about 58 cycles against about 40 for foldhash and xxh3). With only SSE2 it does 14 bytes per cycle, and the scalar fallback 2. Without `-C target-cpu=native` short inputs cost a few cycles more. Your numbers will differ, so run the repository's `bench` harness on your own hardware. The chart, the raw data and every before-and-after measurement are in the repository under `docs/`.
+Where it is weaker: fixed-length keys of 16 bytes or less (foldhash is about twice as fast there), and latency from 65 to 256 bytes (about 58 cycles against about 40 for foldhash and xxh3). With only SSE2 it does 14 bytes per cycle, and the scalar fallback 2. Without `-C target-cpu=native` short inputs cost a few cycles more. Your numbers will differ, so run the repository's `bench` harness on your own hardware.
 
 ## Quality
 
-The default function passes SMHasher3 `--test=All` (188/188) and `--extra` (252/252), and rurban's SMHasher with no flagged result, for both widths. The logs are in the repository.
+The default function passes SMHasher3 `--test=All` (188/188) and `--extra` (252/252), and rurban's SMHasher with no flagged result, for both widths.
 
-SMHasher can't find everything. A draft of 0.2.0 passed both suites while 17 to 64 byte inputs had collisions that held under every seed, because only the last multiply carried the seed. Now every multiply operand carries a secret derived from the seed, and the repository's quality protocol also plants every public constant at every position and tries to swap and cancel the internal chains. It finds nothing. Miri is clean on every x86 kernel, inputs ending at an unmapped page never fault, and the fuzz targets compare every backend with the reference.
+SMHasher can't find everything. A draft of 0.2.0 passed both suites while 17 to 64 byte inputs had collisions that held under every seed, because only the last multiply carried the seed. Now every multiply operand carries a secret derived from the seed, and the tests in `tests/planted.rs` plant every public constant at every position and try to swap and cancel the internal chains. Miri is clean on every x86 kernel, inputs ending at an unmapped page never fault, and the fuzz targets compare every backend with the reference.
 
 None of this makes it a cryptographic hash. Use it for hash tables, deduplication and checksums, not against attackers who can see outputs.
 

@@ -15,7 +15,7 @@
 
 * **`HashMap` hasher:** every fold has a secret in both operands, small integer writes are packed into a 128-bit buffer (one multiply for a `u64` key), and each `RandomState` starts from a different accumulator.
 
-* **Speed** (against the first 0.2.0 draft): 65 to 512 byte inputs 1.14 to 1.36x faster in throughput and 1.13 to 1.22x in latency, variable-length keys of 1 to 16 bytes 1.38x faster, `Stream` fed in 4 KiB pieces about 2x faster. Fixed-length 4 to 16 byte keys through `hash64` are about 10% slower (keyed operands, branch-free load), while `hash64_fixed` on an 8-byte array is faster than before. Bulk speed is unchanged. Details in `docs/context/report.md`.
+* **Speed** (against the first 0.2.0 draft): 65 to 512 byte inputs 1.14 to 1.36x faster in throughput and 1.13 to 1.22x in latency, variable-length keys of 1 to 16 bytes 1.38x faster, `Stream` fed in 4 KiB pieces about 2x faster. Fixed-length 4 to 16 byte keys through `hash64` are about 10% slower (keyed operands, branch-free load), while `hash64_fixed` on an 8-byte array is faster than before. Bulk speed is unchanged.
 
 * **aarch64:** the NEON backend compiles again (it was type-checked only and had fallen out of sync). It has still not run on hardware.
 
