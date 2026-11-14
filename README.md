@@ -186,17 +186,20 @@ Representative workloads measured on the same benchmark system:
 
 Both algorithms are validated using established non-cryptographic hash test suites and memory-safety checks.
 
-| Test                                |     `lanehash` |     `aes` |
-| ----------------------------------- | -------------: | --------: |
-| SMHasher3 `--test=All`              |      188 / 188 | 188 / 188 |
-| SMHasher3 `--extra --test=All`      |      252 / 252 | 252 / 252 |
-| rurban SMHasher, including BadSeeds | pass, one note |      pass |
-| Miri                                |          clean |     clean |
-| Guard-page test                     |       no fault |  no fault |
+| Test                                       | `lanehash` |     `aes` |
+| ------------------------------------------ | ---------: | --------: |
+| SMHasher3 `--test=All`                     |  188 / 188 | 188 / 188 |
+| SMHasher3 `--extra --test=All`             |  252 / 252 | 252 / 252 |
+| rurban SMHasher, including BadSeeds        |       pass |      pass |
+| Planted constants and chain swap (probes)  |   0 broken | 0 broken, constructions only |
+| Sparse keys, up to 3 bits, 75 M keys       | 0 collisions |       |
+| Fuzzing against the reference              |  no finding | no finding (0.1) |
+| Miri                                       |      clean |     clean |
+| Guard-page tests                           |   no fault |  no fault |
 
 Detailed logs are available in [`docs/quality/`](docs/quality/).
 
-The one statistical note is in the 128-bit default algorithm: sparse 16-bit keys, high 32 bits produced 3 collisions against 0.3 expected at the suite's fixed seed, corresponding to approximately 0.29 per seed over 400 seeds.
+SMHasher cannot see collisions that need a specific 64-bit constant at a specific offset, or two related input regions: an earlier draft of 0.2.0 passed both suites with seed-independent collisions in its 17 to 64 byte path. `tools/quality.sh` therefore also runs `probe_planted` (every public constant at every word position of every short class, through the one-shot function and the map hasher), `probe_swap` (exchanging and cancelling chains of the long path) and the sparse-key searches. `docs/context/dossier.md` explains what each suite covers.
 
 These tests evaluate statistical quality and implementation safety. They do not establish cryptographic security.
 
