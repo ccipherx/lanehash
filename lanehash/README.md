@@ -6,7 +6,7 @@ There are two independent functions behind the same API. The crate root is the d
 
 ```toml
 [dependencies]
-lanehash = "0.2"
+lanehash = "0.4"
 ```
 
 ## Usage
@@ -57,7 +57,7 @@ Where it is weaker: fixed-length keys of 16 bytes or less (foldhash is about twi
 
 The default function passes SMHasher3 `--test=All` (188/188) and `--extra` (252/252), and rurban's SMHasher with no flagged result, for both widths.
 
-SMHasher can't find everything. A draft of 0.2.0 passed both suites while 17 to 64 byte inputs had collisions that held under every seed, because only the last multiply carried the seed. Now every multiply operand carries a secret derived from the seed, and the tests in `tests/planted.rs` plant every public constant at every position and try to swap and cancel the internal chains. Miri is clean on every x86 kernel, inputs ending at an unmapped page never fault, and the fuzz targets compare every backend with the reference.
+SMHasher can't find everything. An unpublished draft of this version passed both suites while 17 to 64 byte inputs had collisions that held under every seed, because only the last multiply carried the seed. Now every multiply operand carries a secret derived from the seed, and the tests in `tests/planted.rs` plant every public constant at every position and try to swap and cancel the internal chains. Miri is clean on every x86 kernel, inputs ending at an unmapped page never fault, and the fuzz targets compare every backend with the reference.
 
 None of this makes it a cryptographic hash. Use it for hash tables, deduplication and checksums, not against attackers who can see outputs.
 

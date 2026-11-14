@@ -1,13 +1,15 @@
 # Changelog
 
-## 0.2.0 (unreleased)
+## 0.4.0 (2026-11-14)
+
+The release after 0.1.1. Versions 0.2 and 0.3 were never published.
 
 - **Breaking:** the crate root is a new function. `lanehash::hash64`, `hash128`,
   `Stream`, `LaneHasher`, `FixedState` and `RandomState` now compute the non-AES hash
   (chained NH-32 stripes on SSE2 / AVX2 / AVX-512 / NEON / wasm simd128, scalar
   reference, multiply-fold path for 0–64 bytes) and return different values than in 0.1.
   Every multiply operand of the 0–64 byte path carries a seed secret and the merge
-  constants differ per chain: an unpublished draft of 0.2.0 keyed only the last multiply
+  constants differ per chain: an unpublished draft keyed only the last multiply
   and let chosen inputs collide under every seed. Verification values 64-bit
   `0x36B435A3`, 128-bit `0xB5F2A65D`.
 - New: `Keyed` (many inputs under one seed), `hash64_fixed` / `hash128_fixed` (arrays,
