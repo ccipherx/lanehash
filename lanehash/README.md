@@ -26,8 +26,8 @@ The crate root, `lanehash`, is the default algorithm. An independent AES-based v
 | ------------------------ | --------------------------- | --------------------------------------- |
 | Hardware requirement     | None                        | Benefits from AES-NI / VAES / Armv8 AES |
 | 64 KiB throughput, the test CPU | ~27 B/cycle                 | ~30 B/cycle with VAES                   |
-| 1 to 31 B keys           | ~17.2 cycles/hash           | ~18.6 cycles/hash                       |
-| HashMap workload         | ~97.7 cycles/op             | ~97.3 cycles/op                         |
+| 1 to 32 B keys           | ~16.9 cycles/hash           | ~18.6 cycles/hash                       |
+| HashMap workload         | ~94.9 cycles/op             | ~97.3 cycles/op                         |
 | wasm32                   | SIMD128 backend             | Software AES                            |
 | SMHasher names           | `lanehash64`, `lanehash128` | `lanehash_aes64`, `lanehash_aes128`     |
 
@@ -52,6 +52,18 @@ let h128 = lanehash::hash128(b"hello world", 42);
 ```
 
 The seed allows applications to select independent hash domains.
+
+### Many inputs under one seed
+
+`Keyed` computes the seed's secrets once. For arrays, `hash64_fixed` and `hash128_fixed` inline the short path for the known length. Both return the same values as `hash64` and `hash128`:
+
+```rust
+let k = lanehash::Keyed::new(42);
+assert_eq!(k.hash64(b"hello world"), lanehash::hash64(b"hello world", 42));
+
+let key = [7u8; 8];
+assert_eq!(lanehash::hash64_fixed(&key, 42), lanehash::hash64(&key, 42));
+```
 
 ### Streaming
 
@@ -132,17 +144,25 @@ Raw benchmark data is available under `docs/bench/lanehash/`, the chart under `d
 
 ## Default algorithm
 
-| Input     |              lanehash |        xxh3 | rapidhash v3 |
-| --------- | --------------------: | ----------: | -----------: |
-| 4 to 16 B | 11.4 to 12.0 cyc/hash | 9.5 to 10.1 | 11.8 to 11.9 |
-| 32 B      |         13.5 cyc/hash |        11.9 |         17.0 |
-| 128 B     |     28 to 31 cyc/hash |        29.4 |         35.4 |
-| 256 B     |     42 to 45 cyc/hash |         101 |           72 |
-| 1 KiB     |          13.6 B/cycle |         6.3 |          6.4 |
-| 4 KiB     |          21.8 B/cycle |        12.8 |          8.1 |
-| 64 KiB    |      **27.0 B/cycle** |        18.5 |          8.8 |
+Measured on one pinned core, `-C target-cpu=native`, all implementations in one binary over the same buffers, median of 7 rounds. "Mixed" draws every length at random from the range, so length-dependent branches mispredict as they do on real key sets. Without `-C target-cpu`, short inputs cost about 2 to 5 cycles more, see `docs/context/experiments.md`.
 
-SSE2-only throughput at 64 KiB is approximately **14.5 B/cycle**.
+Through the slice functions, fixed-length 4 to 16 byte keys cost about 2 cycles more than in the 0.2.0 draft, because every operand is now keyed and the short load has no branch. Mixed lengths got faster: 31.3 to 22.7 cycles for 1 to 16 bytes. `hash64_fixed` hashes an 8-byte array in 10.0 cycles.
+
+Raw data: `docs/context/data/final-*.csv` and `docs/bench/lanehash/`. Before and after for every change: `docs/context/report.md`.
+
+| Input | lanehash | xxh3 | rapidhash v3 | foldhash |
+| --- | ---: | ---: | ---: | ---: |
+| 4 to 16 B, cycles/hash | 13.8 to 14.2 | 9.7 to 10.5 | 12.2 to 12.4 | 7.0 to 7.7 |
+| mixed 1 to 16 B, cycles/hash | 22.6 | 30.4 | 26.4 | 26.9 |
+| 32 B, cycles/hash | 13.8 | 12.4 | 18.5 | 12.8 |
+| 65 B, cycles/hash | 27.9 | 23.8 | 24.4 | 16.0 |
+| 128 B, cycles/hash | 28.3 | 30.5 | 33.7 | 21.1 |
+| 256 B, cycles/hash | 41.0 | 93.7 | 95.0 | 37.3 |
+| 512 B, cycles/hash | 56.1 | 110.7 | 144.8 | 74.7 |
+| 1 KiB, bytes/cycle | 13.9 | 7.4 | 4.7 | 7.8 |
+| 4 KiB, bytes/cycle | 21.8 | 13.4 | 5.5 | 8.1 |
+| 64 KiB, bytes/cycle | **26.7** | 18.4 | 5.9 | 8.2 |
+| 64 KiB, SSE2 kernel, bytes/cycle | 14.1 | | | |
 
 ## AES variant benchmarks
 
@@ -244,7 +264,7 @@ The implementation automatically selects the fastest supported backend while pre
 
 | Platform     | `lanehash`           | `lanehash::aes`                       |
 | ------------ | -------------------- | ------------------------------------- |
-| x86-64       | AVX-512F, AVX2, SSE2 | VAES + AVX-512VL, VAES + AVX2, AES-NI |
+| x86-64       | AVX-512F + VL + BMI2, AVX2 + BMI2, SSE2 | VAES + AVX-512VL, VAES + AVX2, AES-NI |
 | aarch64      | NEON                 | Armv8 AES                             |
 | wasm32       | SIMD128 (`+simd128`) | Software AES                          |
 | Any platform | Scalar reference     | T-table software AES                  |

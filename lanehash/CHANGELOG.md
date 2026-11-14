@@ -14,8 +14,10 @@
   inlined short classes). Same values as `hash64` / `hash128`.
 - `HashMap` hasher: secrets in both operands of every fold, small integer writes packed
   into a 128-bit buffer, a different accumulator start per `RandomState`.
-- 65–512 B about 20–35% faster, mixed short keys about 20% faster, `Stream` in 4 KiB
-  pieces about 2x faster. NEON compiles again (still untested on hardware).
+- 65–512 B 1.14–1.36x faster (latency 1.13–1.22x), variable-length 1–16 B keys 1.38x,
+  `Stream` in 4 KiB pieces about 2x. Fixed-length 4–16 B keys through `hash64` about 10%
+  slower, `hash64_fixed` faster than before. NEON compiles again (still untested on
+  hardware).
 - The 0.1 AES-lane function is unchanged, bit for bit, under `lanehash::aes` (same items
   plus `hash64_batch` / `hash128_batch`): replace `lanehash::` with `lanehash::aes::` to
   keep 0.1 output.
