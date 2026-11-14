@@ -22,13 +22,13 @@ Backends are chosen at compile time and all produce the same output:
 
 | flags | lanehash | lanehash_aes |
 |---|---|---|
-| `-march=native` on a Zen 4 / Sapphire Rapids | AVX-512F | VAES, two lanes per ymm |
+| `-march=native` on a CPU with AVX-512 | AVX-512F | VAES, two lanes per ymm |
 | `-mavx2` (+ `-mvaes -maes`) | AVX2 | VAES, two lanes per ymm |
 | `-maes` / none | SSE2 | AES-NI / T-table software AES |
 | `-DLANEHASH_PORTABLE` / `-DLANEHASH_AES_PORTABLE` | scalar | T-table software AES |
 | `-DLANEHASH_NO_INT128` / `-DLANEHASH_AES_NO_INT128` | 32-bit multiplies for the folds | same |
 
-Verification values (SMHasher): lanehash 0xD048C22B (64-bit), 0xC2F39939 (128-bit);
+Verification values (SMHasher): lanehash 0x36B435A3 (64-bit), 0xB5F2A65D (128-bit);
 lanehash_aes 0x9FF60BEF (64-bit), 0x1A79672D (128-bit).
 
 `make test` builds six variants (scalar, scalar without `__int128`, SSE2 + AES-NI, AVX2 +

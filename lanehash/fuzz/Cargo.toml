@@ -40,6 +40,20 @@ test = false
 doc = false
 bench = false
 
+[[bin]]
+name = "default_oneshot"
+path = "fuzz_targets/default_oneshot.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "default_stream"
+path = "fuzz_targets/default_stream.rs"
+test = false
+doc = false
+bench = false
+
 # Prevent this from interfering with workspaces
 [workspace]
 members = ["."]

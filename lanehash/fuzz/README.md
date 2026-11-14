@@ -21,6 +21,8 @@ cargo +nightly fuzz run oneshot -- -max_len=1048576   # reach the 64 KiB prefetc
 cargo +nightly fuzz run stream
 cargo +nightly fuzz run batch
 cargo +nightly fuzz run hasher
+cargo +nightly fuzz run default_oneshot -- -max_len=8192   # the default function, every backend
+cargo +nightly fuzz run default_stream
 ```
 
 Add `-- -max_total_time=60` for a bounded run. Crashing inputs land in

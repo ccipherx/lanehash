@@ -18,10 +18,6 @@ pub struct LaneHasher {
 fn le64(p: &[u8], i: usize) -> u64 {
     u64::from_le_bytes(p[i..i + 8].try_into().unwrap())
 }
-#[inline(always)]
-fn le32(p: &[u8], i: usize) -> u64 {
-    u32::from_le_bytes(p[i..i + 4].try_into().unwrap()) as u64
-}
 
 impl LaneHasher {
     #[inline(always)]
@@ -47,17 +43,6 @@ impl LaneHasher {
             self.acc = fold(crate::aes::hash64(bytes, self.seed) ^ k[2] ^ self.acc, k[3] ^ len as u64);
         }
     }
-    /// Two words carrying all of `p` (`p.len() <= 16`), as in the short path.
-    #[inline(always)]
-    fn words16(p: &[u8]) -> (u64, u64) {
-        let len = p.len();
-        match len {
-            0 => (0, 0),
-            1..=3 => ((p[0] as u64) | ((p[len / 2] as u64) << 8) | ((p[len - 1] as u64) << 16), 0),
-            4..=8 => (le32(p, 0) | (le32(p, len - 4) << 32), 0),
-            _ => (le64(p, 0), le64(p, len - 8)),
-        }
-    }
 }
 
 impl Hasher for LaneHasher {
@@ -66,7 +51,7 @@ impl Hasher for LaneHasher {
         let len = bytes.len();
         let k = &self.k;
         if len <= 16 {
-            let (a, b) = Self::words16(bytes);
+            let (a, b) = crate::short::words16(bytes);
             self.acc = fold(a ^ k[0] ^ self.acc, b ^ k[1] ^ len as u64);
         } else {
             self.write_long(bytes);

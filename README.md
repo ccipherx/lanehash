@@ -1,42 +1,8 @@
 # lanehash
 
-**Fast, portable, non-cryptographic 64-bit and 128-bit hashing for Rust.**
+Fast, portable 64-bit and 128-bit hashing for Rust. Not cryptographic.
 
-`lanehash` provides two independent hash functions behind one API:
-
-* **`lanehash`** is the default algorithm. It has no instruction-set requirement and produces identical output across the scalar reference, SSE2, AVX2, AVX-512, NEON, and wasm SIMD128 backends.
-* **`lanehash::aes`** is the AES-based variant. It is optimized for bulk workloads on CPUs with VAES.
-
-Both algorithms provide 64-bit and 128-bit hashing, streaming APIs, and `HashMap` / `HashSet` support.
-
-## Highlights
-
-* **Fast:** up to 27 bytes/cycle at 64 KiB on Zen 4; the AES variant reaches up to 30 bytes/cycle with VAES.
-* **Competitive on short keys:** 1 to 31 byte inputs are approximately 17 cycles/hash in the rurban harness.
-* **Portable:** scalar fallback plus SSE2, AVX2, AVX-512, NEON, and wasm SIMD128 backends.
-* **Deterministic:** every backend produces identical output for the same input and seed.
-* **Runtime dispatch:** selects the fastest supported backend on x86-64 and aarch64.
-* **Streaming:** `Stream` is available for both algorithms.
-* **Batched hashing:** available for the AES variant.
-* **`HashMap` / `HashSet`:** `RandomState` and `FixedState` for both algorithms.
-* **`no_std`:** no runtime dependencies.
-* **Memory-safe:** no out-of-bounds reads; Miri-clean and guard-page tested.
-* **Cross-language:** C and WebAssembly implementations are included.
-
-## Which algorithm?
-
-|                      | `lanehash`                  | `lanehash::aes`                                     |
-| -------------------- | --------------------------- | --------------------------------------------------- |
-| Hardware requirement | None                        | AES-NI / VAES / Armv8 AES for hardware acceleration |
-| 64 KiB on Zen 4      | 27 B/cycle                  | 28 to 30 B/cycle                                    |
-| 1 to 31 B keys       | 17.2 cycles/hash            | 18.6 cycles/hash                                    |
-| HashMap workload     | 97.7 cycles/op              | 97.3 cycles/op                                      |
-| wasm32               | SIMD128 backend             | Software AES                                        |
-| SMHasher names       | `lanehash64`, `lanehash128` | `lanehash_aes64`, `lanehash_aes128`                 |
-
-The two algorithms produce unrelated outputs.
-
-## Installation
+There are two independent functions behind the same API. The crate root is the default and runs anywhere: one definition, with a scalar fallback and SSE2, AVX2, AVX-512, NEON and wasm SIMD128 kernels that all give the same output. `lanehash::aes` is an AES-based variant that is a little faster on large inputs when the CPU has VAES. If you are not sure, use the default.
 
 ```toml
 [dependencies]
@@ -45,184 +11,64 @@ lanehash = "0.2"
 
 ## Usage
 
-### One-shot
-
 ```rust
 let h64 = lanehash::hash64(b"hello world", 42);
-let h128 = lanehash::hash128(b"hello world", 42);
-```
+let h128 = lanehash::hash128(b"hello world", 42); // low half equals hash64
 
-### Streaming
+// many inputs under one seed, without redoing the seed setup each call
+let k = lanehash::Keyed::new(42);
+assert_eq!(k.hash64(b"hello world"), h64);
 
-`Stream` produces the same result as one-shot hashing:
+// fixed-size keys: the short path inlines for the known length
+assert_eq!(lanehash::hash64_fixed(&[7u8; 8], 42), lanehash::hash64(&[7u8; 8], 42));
 
-```rust
-let mut stream = lanehash::Stream::new(42);
+// streaming gives the same result as one-shot hashing
+let mut s = lanehash::Stream::new(42);
+s.update(b"hello ");
+s.update(b"world");
+assert_eq!(s.finish128(), h128);
 
-stream.update(b"hello ");
-stream.update(b"world");
-
-assert_eq!(
-    stream.finish128(),
-    lanehash::hash128(b"hello world", 42)
-);
-```
-
-### `HashMap` / `HashSet`
-
-```rust
-use std::collections::HashMap;
-
-let mut map: HashMap<&str, u32, lanehash::RandomState> =
-    HashMap::default();
-
+// HashMap and HashSet
+let mut map: std::collections::HashMap<&str, u32, lanehash::RandomState> = Default::default();
 map.insert("key", 1);
 ```
 
-For deterministic hashing:
+`FixedState::new(seed)` gives deterministic maps. The `Hasher` behind `RandomState` and `FixedState` is a separate construction, and its output may change between minor releases, so don't persist it.
 
-```rust
-let fixed: HashMap<u64, u64, lanehash::FixedState> =
-    HashMap::with_hasher(lanehash::FixedState::new(7));
-```
+The AES variant has the same API under `lanehash::aes`, plus `hash64_batch` and `hash128_batch`. Its output has not changed since 0.1.
 
-`RandomState` and `FixedState` use a separate `std::hash::Hasher` implementation. Its output is an implementation detail and may change between minor releases. Do not persist it or use it as a stable serialization format.
+## Speed
 
-### AES variant
+Cycles per hash for short inputs, bytes per cycle for long ones, measured on one x86-64 core with AVX-512, native build. "Random 1–16 B" draws each length at random, the way real key sets look, so branch prediction can't learn it.
 
-The AES implementation exposes the same core API under `lanehash::aes`, plus batched hashing:
+| Input | lanehash | lanehash::aes | foldhash | xxh3 | rapidhash | gxhash |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 8 B | 14.1 | 18.2 | 7.1 | 10.4 | 12.3 | 10.9 |
+| random 1–16 B | 22.6 | 27.8 | 26.9 | 30.4 | 26.4 | 14.0 |
+| 32 B | 13.8 | 18.2 | 12.8 | 12.4 | 18.5 | 10.3 |
+| 128 B | 28.3 | 20.5 | 21.1 | 30.5 | 33.7 | 17.0 |
+| 512 B | 56.1 | 40.1 | 74.7 | 110.7 | 144.8 | 38.6 |
+| 4 KiB | 21.8 B/c | 24.3 B/c | 8.1 B/c | 13.4 B/c | 5.5 B/c | 22.2 B/c |
+| 64 KiB | 26.7 B/c | 30.2 B/c | 8.2 B/c | 18.4 B/c | 5.9 B/c | 24.6 B/c |
 
-```rust
-let h = lanehash::aes::hash64(b"hello world", 42);
+![benchmarks](docs/bench/charts/lanehash.svg)
 
-let mut stream = lanehash::aes::Stream::new(42);
-stream.update(b"hello world");
+Where it is weaker: fixed-length keys of 16 bytes or less (foldhash is about twice as fast there), and latency from 65 to 256 bytes (about 58 cycles against about 40 for foldhash and xxh3). With only SSE2 it does 14 bytes per cycle, and the scalar fallback 2. Without `-C target-cpu=native` short inputs cost a few cycles more. Your numbers will differ, so run `bench` on your own hardware.
 
-assert_eq!(stream.finish64(), h);
-```
+## Quality
 
-Batched hashing:
+The default function passes SMHasher3 `--test=All` (188/188) and `--extra` (252/252), and rurban's SMHasher with no flagged result, for both widths.
 
-```rust
-let records: Vec<&[u8]> = vec![
-    &[1u8; 200],
-    &[2u8; 300],
-    b"short",
-];
+SMHasher can't find everything. A draft of 0.2.0 passed both suites while 17 to 64 byte inputs had collisions that held under every seed, because only the last multiply carried the seed. Now every multiply operand carries a secret derived from the seed, and the tests in `lanehash/tests/planted.rs` plant every public constant at every position and try to swap and cancel the internal chains. Miri is clean on every x86 kernel, inputs ending at an unmapped page never fault, and the fuzz targets compare every backend with the reference.
 
-let mut output = vec![0u64; records.len()];
+None of this makes it a cryptographic hash. Use it for hash tables, deduplication and checksums, not against attackers who can see outputs.
 
-lanehash::aes::hash64_batch(
-    &records,
-    42,
-    &mut output,
-);
-```
-# Performance
+## Platforms
 
-Benchmark results are hardware and configuration dependent. The numbers below are provided to document representative workloads rather than as universal performance rankings.
+x86-64 picks AVX-512 (with VL and BMI2), AVX2 (with BMI2) or SSE2 at run time, or at compile time when the target features are enabled. aarch64 uses NEON. It compiles, but hasn't been run on real hardware yet. wasm32 uses SIMD128 when built with `+simd128`. Everything else gets the scalar reference. The crate is `no_std` with the `std` feature off, and has no dependencies. `force-fallback` forces the portable code for testing.
 
-![lanehash benchmarks](docs/bench/charts/lanehash.svg)
+There is a C port in `lanehash-c/` and JavaScript/WebAssembly bindings in `lanehash-wasm/`, both bit-identical to the crate.
 
-Raw benchmark data is available in [`docs/bench/lanehash/`](docs/bench/lanehash/): the
-chart's `throughput.csv`, `latency.csv` and `workloads.csv`, and the `*-final*` files
-behind the table below, whose rows are still named `lh2`, the function name before 0.2.
-`bench/chart.py` renders the chart from the CSVs.
+Verification values (SMHasher): `lanehash` 64-bit `0x36B435A3`, 128-bit `0xB5F2A65D`. `lanehash::aes` 64-bit `0x9FF60BEF`, 128-bit `0x1A79672D`.
 
-## Default algorithm
-
-Measured on an AMD Ryzen 5 7600 (Zen 4), using the same binary and buffers for all implementations. The default `cargo build --release` configuration was used, with runtime dispatch selecting AVX-512.
-
-| Input                  |     lanehash | xxh3 (AVX-512) | rapidhash v3 |
-| ---------------------- | -----------: | -------------: | -----------: |
-| 4 to 16 B, cycles/hash | 11.4 to 12.0 |    9.5 to 10.1 | 11.8 to 11.9 |
-| 32 B, cycles/hash      |         13.5 |           11.9 |         17.0 |
-| 128 B, cycles/hash     |     28 to 31 |           29.4 |         35.4 |
-| 256 B, cycles/hash     |     42 to 45 |            101 |           72 |
-| 1 KiB, bytes/cycle     |         13.6 |            6.3 |          6.4 |
-| 4 KiB, bytes/cycle     |         21.8 |           12.8 |          8.1 |
-| 64 KiB, bytes/cycle    |     **27.0** |           18.5 |          8.8 |
-| 64 KiB, SSE2-only      |     **14.5** |            8.5 |          8.8 |
-
-The default algorithm is not optimized to win every workload. Dependent-chain latency is higher than rapidhash on 4 to 16 byte inputs and at 128 bytes. Scalar execution is substantially slower than SIMD execution, and wasm workloads below 64 KiB are not the primary optimization target.
-
-## AES variant
-
-The AES variant reaches approximately **25 to 30 bytes/cycle** on cache-resident inputs of 4 KiB and larger, with the highest results on VAES-capable hardware.
-
-Short one-shot inputs are not its primary target workload.
-
-Full benchmark results are available in [`docs/bench/TABLES.md`](docs/bench/TABLES.md). Rows named `lanehash` in that historical table refer to the AES variant because the measurements predate the 0.2 algorithm split.
-
-![lanehash AES variant benchmarks](docs/bench/charts/benchmarks.svg)
-
-## Additional workloads
-
-Representative workloads measured on the same benchmark system:
-
-* **4 KiB page deduplication:** 526 cycles/page using `hash128` + `HashSet<u128>`; gxhash 495, xxh3-128 588, rapidhash v3 1055.
-* **64 MiB checksum:** 45.8 GB/s one-shot and 47.2 GB/s through `Stream`; gxhash 49.9 GB/s, xxh3 50.9 GB/s, rapidhash v3 39.0 GB/s.
-
-# Quality
-
-Both algorithms are validated using established non-cryptographic hash test suites and memory-safety checks.
-
-| Test                                |     `lanehash` |     `aes` |
-| ----------------------------------- | -------------: | --------: |
-| SMHasher3 `--test=All`              |      188 / 188 | 188 / 188 |
-| SMHasher3 `--extra --test=All`      |      252 / 252 | 252 / 252 |
-| rurban SMHasher, including BadSeeds | pass, one note |      pass |
-| Miri                                |          clean |     clean |
-| Guard-page test                     |       no fault |  no fault |
-
-Detailed logs are available in [`docs/quality/`](docs/quality/).
-
-The one statistical note is in the 128-bit default algorithm: sparse 16-bit keys, high 32 bits produced 3 collisions against 0.3 expected at the suite's fixed seed, corresponding to approximately 0.29 per seed over 400 seeds.
-
-These tests evaluate statistical quality and implementation safety. They do not establish cryptographic security.
-
-# Backends
-
-The fastest supported backend is selected automatically. All backends produce the same output as the portable reference implementation.
-
-| Platform     | `lanehash`           | `lanehash::aes`                       |
-| ------------ | -------------------- | ------------------------------------- |
-| x86-64       | AVX-512F, AVX2, SSE2 | VAES + AVX-512VL, VAES + AVX2, AES-NI |
-| aarch64      | NEON                 | Armv8 AES                             |
-| wasm32       | SIMD128 (`+simd128`) | Software AES                          |
-| Any platform | Scalar reference     | T-table software AES                  |
-
-Runtime dispatch is used on x86-64 and aarch64.
-
-The repository also contains:
-
-* [`lanehash-c/`](lanehash-c/): C implementations
-* [`lanehash-wasm/`](lanehash-wasm/): JavaScript/WebAssembly bindings
-
-## Features
-
-| Feature          | Default | Description                                    |
-| ---------------- | ------- | ---------------------------------------------- |
-| `std`            | Yes     | Runtime CPU detection and `RandomState`        |
-| `force-fallback` | No      | Portable backends for testing and verification |
-
-The core implementation supports `no_std`.
-
-## Verification values
-
-| Algorithm  | 64-bit       | 128-bit      |
-| ---------- | ------------ | ------------ |
-| `lanehash` | `0xD048C22B` | `0xC2F39939` |
-| `aes`      | `0x9FF60BEF` | `0x1A79672D` |
-
-These values are implementation verification vectors, not cryptographic test vectors.
-
-# Requirements
-
-* **Rust:** 1.89 or newer
-* **Platform:** any platform supported by Rust
-* Optimized SIMD backends are selected automatically when available
-
-# License
-
-MIT OR Apache-2.0
+Rust 1.89 or newer. MIT or Apache-2.0, at your option.
