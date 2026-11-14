@@ -7,7 +7,17 @@
   * SIMD backends: SSE2, AVX2, AVX-512, NEON, and wasm SIMD128
   * Portable scalar reference implementation
   * Multiply-fold path for inputs up to 64 bytes
-  * Verification values: `0xD048C22B` (64-bit), `0xC2F39939` (128-bit)
+  * Every multiply operand of the 0 to 64 byte path carries a secret derived from the seed. An earlier draft of 0.2.0 (never published) keyed only the last multiply, which let chosen inputs collide under every seed
+  * Merge constants differ per chain, so no two chains can be exchanged or cancelled
+  * Verification values: `0x36B435A3` (64-bit), `0xB5F2A65D` (128-bit)
+
+* **New API:** `Keyed` hashes many inputs under one seed without the per-call seed multiply. `hash64_fixed` / `hash128_fixed` take arrays, so the short classes inline for a known length. All three return the same values as `hash64` / `hash128`.
+
+* **`HashMap` hasher:** every fold has a secret in both operands, small integer writes are packed into a 128-bit buffer (one multiply for a `u64` key), and each `RandomState` starts from a different accumulator.
+
+* **Speed:** 65 to 512 byte inputs about 20 to 35% faster, mixed 1 to 16 byte key sets about 20% faster, `Stream` fed in 4 KiB pieces about 2x faster, SSE2 at 513 B to 2 KiB 10 to 35% faster. Details in `docs/context/experiments.md`.
+
+* **aarch64:** the NEON backend compiles again (it was type-checked only and had fallen out of sync). It has still not run on hardware.
 
 * **0.1 compatibility:** The 0.1 AES-lane algorithm is unchanged bit-for-bit and is now available under `lanehash::aes`. Use the corresponding APIs under `lanehash::aes` to preserve 0.1 output.
 

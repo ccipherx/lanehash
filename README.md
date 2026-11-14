@@ -212,7 +212,7 @@ The core implementation supports `no_std`.
 
 | Algorithm  | 64-bit       | 128-bit      |
 | ---------- | ------------ | ------------ |
-| `lanehash` | `0xD048C22B` | `0xC2F39939` |
+| `lanehash` | `0x36B435A3` | `0xB5F2A65D` |
 | `aes`      | `0x9FF60BEF` | `0x1A79672D` |
 
 These values are implementation verification vectors, not cryptographic test vectors.

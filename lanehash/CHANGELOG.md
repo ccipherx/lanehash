@@ -6,7 +6,16 @@
   `Stream`, `LaneHasher`, `FixedState` and `RandomState` now compute the non-AES hash
   (chained NH-32 stripes on SSE2 / AVX2 / AVX-512 / NEON / wasm simd128, scalar
   reference, multiply-fold path for 0–64 bytes) and return different values than in 0.1.
-  Verification values 64-bit `0xD048C22B`, 128-bit `0xC2F39939`.
+  Every multiply operand of the 0–64 byte path carries a seed secret and the merge
+  constants differ per chain: an unpublished draft of 0.2.0 keyed only the last multiply
+  and let chosen inputs collide under every seed. Verification values 64-bit
+  `0x36B435A3`, 128-bit `0xB5F2A65D`.
+- New: `Keyed` (many inputs under one seed), `hash64_fixed` / `hash128_fixed` (arrays,
+  inlined short classes). Same values as `hash64` / `hash128`.
+- `HashMap` hasher: secrets in both operands of every fold, small integer writes packed
+  into a 128-bit buffer, a different accumulator start per `RandomState`.
+- 65–512 B about 20–35% faster, mixed short keys about 20% faster, `Stream` in 4 KiB
+  pieces about 2x faster. NEON compiles again (still untested on hardware).
 - The 0.1 AES-lane function is unchanged, bit for bit, under `lanehash::aes` (same items
   plus `hash64_batch` / `hash128_batch`): replace `lanehash::` with `lanehash::aes::` to
   keep 0.1 output.
