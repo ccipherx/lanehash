@@ -333,14 +333,14 @@ unsafe fn storem_128(out: &mut [u64], v: __m128i) {
 /// `vpermq` first, on the critical path of every hash under 513 bytes.
 #[inline(always)]
 unsafe fn storem_128v(out: &mut [u64], v: __m128i) {
-    #[cfg(not(miri))]
+    #[cfg(not(any(miri, kani)))]
     {
         let (a, b): (u64, u64);
         core::arch::asm!("vmovq {a}, {v}", "vpextrq {b}, {v}, 1", v = in(xmm_reg) v, a = out(reg) a, b = out(reg) b, options(pure, nomem, nostack, preserves_flags));
         out[0] = a;
         out[1] = b;
     }
-    #[cfg(miri)]
+    #[cfg(any(miri, kani))]
     storem_128(out, v);
 }
 #[inline(always)]

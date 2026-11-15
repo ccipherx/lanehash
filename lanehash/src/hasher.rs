@@ -11,6 +11,9 @@
 use super::short::{short64_mid, words16, KS, ROT};
 use super::spec::{fold, keys};
 use core::hash::{BuildHasher, Hasher};
+#[cfg(kani)]
+#[path = "kani/hasher.rs"]
+mod proofs;
 
 #[derive(Clone)]
 pub struct LaneHasher {
