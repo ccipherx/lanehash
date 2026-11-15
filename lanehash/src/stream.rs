@@ -5,6 +5,20 @@ use super::spec::{self, Words, BLOCK, CHAINS, STRIPE};
 /// Carry, one block not yet known to be leading, and the 64 bytes that make it so.
 const BUF: usize = 64 + BLOCK + 64;
 
+/// `total + len` for both `Stream` types, panicking instead of wrapping.
+#[inline(always)]
+pub(crate) fn add_len(total: usize, len: usize) -> usize {
+    match total.checked_add(len) {
+        Some(t) => t,
+        None => too_long(),
+    }
+}
+#[cold]
+#[inline(never)]
+fn too_long() -> ! {
+    panic!("lanehash: stream input longer than usize::MAX bytes")
+}
+
 pub struct Stream {
     seed: u64,
     ks: u64,
@@ -45,8 +59,12 @@ impl Stream {
     /// everything after that is absorbed straight from `data`: with a buffer that kept
     /// 64 bytes of look-ahead, a stream fed in 4 KiB pieces went through the buffer block
     /// by block, at a third of the one-shot rate.
+    ///
+    /// # Panics
+    ///
+    /// If the total input exceeds `usize::MAX` bytes, reachable only on 32-bit targets.
     pub fn update(&mut self, mut data: &[u8]) {
-        self.total += data.len();
+        self.total = crate::stream::add_len(self.total, data.len());
 
         loop {
             let carry = self.carry();
@@ -124,5 +142,37 @@ impl Stream {
             return super::short::short64(&self.buf[..self.buf_len], self.seed);
         }
         self.finish128() as u64
+    }
+}
+
+#[cfg(all(test, target_pointer_width = "32"))]
+mod tests {
+    use super::*;
+
+    /// A stream that has seen `total` bytes, skipping the middle by advancing the
+    /// counters in whole blocks.
+    fn at(total: usize) -> Stream {
+        let mut st = Stream::new(7);
+        st.update(&[0u8; 2000]);
+        let skip = (total - 4000 - st.total) / BLOCK * BLOCK;
+        st.total += skip;
+        st.blocks += skip / BLOCK;
+        let rest = vec![0u8; total - st.total];
+        st.update(&rest);
+        st
+    }
+
+    #[test]
+    fn length_near_usize_max() {
+        for below in 0..20 {
+            let _ = at(usize::MAX - below).finish128();
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "longer than usize::MAX")]
+    fn length_past_usize_max() {
+        let mut st = at(usize::MAX - 100);
+        st.update(&[0u8; 300]);
     }
 }
