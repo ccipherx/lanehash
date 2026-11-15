@@ -1,0 +1,11 @@
+# Corpus for the Lean model's differential check: `cargo run --release > corpus.txt`
+[package]
+name = "lanehash-diff"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+lanehash = { path = "../../lanehash" }
+
+[workspace]
