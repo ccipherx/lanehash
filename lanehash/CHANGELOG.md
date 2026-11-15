@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.0 (2026-11-15)
+
+- **Fix:** `Stream` and `aes::Stream` on 32-bit targets. The byte count wrapped after
+  4 GiB: the scalar backend then hashed the wrong length, the wasm simd128 backend read
+  and wrote outside its state, and the AES stream read out of bounds. Both streams now
+  panic once the input exceeds `usize::MAX` bytes (see `# Panics`). Output is unchanged
+  for every shorter input.
+- Formal verification in the repository's `verification/`: Lean proofs about a model of
+  the hash that reproduces the verification values, Kani proofs on the 0–64 byte path,
+  the `HashMap` hasher and the x86 kernels, and CBMC proofs for the C port.
+- No output change: known answers and verification values are unchanged.
+
 ## 0.4.0 (2026-11-14)
 
 The release after 0.1.1. Versions 0.2 and 0.3 were never published.

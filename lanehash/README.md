@@ -24,7 +24,7 @@ One definition runs everywhere: a scalar reference plus SSE2, AVX2, AVX-512, NEO
 
 ```toml
 [dependencies]
-lanehash = "0.4"
+lanehash = "0.5"
 ```
 
 ### Hashing bytes
