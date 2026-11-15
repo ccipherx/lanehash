@@ -35,3 +35,6 @@ lanehash_aes 0x9FF60BEF (64-bit), 0x1A79672D (128-bit).
 VAES, AVX-512 + VAES, and SSE2 + AES-NI at `-O0` under ASan and UBSan) and compares each
 with the Rust crate through `../lanehash-ffi` on 12 678 (length, seed, alignment) cases per
 function. `make speed` prints cycles per hash of the C port next to the Rust crate.
+
+Formally verified with CBMC (`../verification/c`): `lanehash64` and `lanehash128` have no
+out-of-bounds read and no undefined behaviour for any key and seed up to 600 bytes, in the scalar, no-`__int128` and SSE2 builds. The AES port is verified the same way at every length up to 64. The 32-bit multiply used without `__int128` is proven exact in Lean.
