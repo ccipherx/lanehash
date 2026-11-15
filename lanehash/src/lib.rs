@@ -35,6 +35,9 @@ pub mod arm;
 #[doc(hidden)]
 pub mod wasm;
 pub mod aes;
+#[cfg(kani)]
+#[path = "kani/top.rs"]
+mod kani_top;
 
 pub use dispatch::{hash128, hash128_fixed, hash64, hash64_fixed, Keyed};
 pub use hasher::{FixedState, LaneHasher};

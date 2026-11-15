@@ -16,6 +16,9 @@
 //! and the public functions are tail jumps. Scalar multiplies on every build.
 use super::spec::{fold, keys};
 use crate::constants::C;
+#[cfg(kani)]
+#[path = "kani/short.rs"]
+mod proofs;
 
 const fn lo64(c: &[u8; 16]) -> u64 {
     u64::from_le_bytes([c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]])

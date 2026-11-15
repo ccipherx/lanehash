@@ -47,8 +47,12 @@ impl Stream {
 
     /// `absorbed_blocks * 16 + buf_len == total`.
     /// Whole steps are absorbed once `total > L8_MAX`; the tail remains buffered.
+    ///
+    /// # Panics
+    ///
+    /// If the total input exceeds `usize::MAX` bytes, reachable only on 32-bit targets.
     pub fn update(&mut self, mut data: &[u8]) {
-        self.total += data.len();
+        self.total = crate::stream::add_len(self.total, data.len());
         if self.total <= crate::aes::L8_MAX {
             self.buf[self.buf_len..self.buf_len + data.len()].copy_from_slice(data);
             self.buf_len += data.len();
@@ -57,7 +61,8 @@ impl Stream {
 
         // Keep the final L blocks buffered for the closing region.
         let pending = self.total - self.absorbed_blocks * 16;
-        let limit = ((self.total + 15) / 16 - L) * 16;
+        // not `(total + 15) / 16`, which wraps near `usize::MAX`
+        let limit = (self.total.div_ceil(16) - L) * 16;
         let steps = ((limit - self.absorbed_blocks * 16) / STEP)
             .min(pending.saturating_sub(STEP) / STEP);
 
@@ -118,7 +123,7 @@ impl Stream {
             return crate::aes::hash128(&self.buf[..self.buf_len], self.seed);
         }
 
-        let n = (self.total + 15) / 16;
+        let n = self.total.div_ceil(16);
         let m = n - L;
         let remaining = m - self.absorbed_blocks;
         let mut state = self.state;
@@ -135,5 +140,37 @@ impl Stream {
 
     pub fn finish64(&self) -> u64 {
         self.finish128() as u64
+    }
+}
+
+#[cfg(all(test, target_pointer_width = "32"))]
+mod tests {
+    use super::*;
+
+    /// A stream that has seen `total` bytes, skipping the middle by advancing the
+    /// counters in whole steps.
+    fn at(total: usize) -> Stream {
+        let mut st = Stream::new(7);
+        st.update(&[0u8; 2000]);
+        let skip = (total - 4000 - st.total) / STEP * STEP;
+        st.total += skip;
+        st.absorbed_blocks += skip / 16;
+        let rest = vec![0u8; total - st.total];
+        st.update(&rest);
+        st
+    }
+
+    #[test]
+    fn length_near_usize_max() {
+        for below in 0..20 {
+            let _ = at(usize::MAX - below).finish128();
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "longer than usize::MAX")]
+    fn length_past_usize_max() {
+        let mut st = at(usize::MAX - 100);
+        st.update(&[0u8; 300]);
     }
 }
