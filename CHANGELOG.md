@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1 (2026-11-16)
+
+* **No code or output change.** SMHasher3 (`--test=All` 188/188, `--extra` 252/252) and rurban's SMHasher re-run on the released function, at 64 and 128 bits: every test passes, nothing flagged.
+
+* **Versions:** `lanehash-wasm` and `lanehash-ffi` now share the crate's version number.
+
 ## 0.5.0 (2026-11-15)
 
 * **Fix:** `Stream` and `aes::Stream` on 32-bit targets. The byte count wrapped after 4 GiB of input: the scalar backend then hashed the wrong length, the wasm SIMD128 backend read and wrote outside its state, and the AES stream read out of bounds. Both streams now panic once the input exceeds `usize::MAX` bytes, as documented under `# Panics`. Output is unchanged for every shorter input.
