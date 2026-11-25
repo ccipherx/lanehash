@@ -13,7 +13,8 @@
  *              folds; a final fold with the length and ks.
  *
  * Backends, chosen at compile time, all bit-identical: scalar (LANEHASH_PORTABLE or
- * non-x86), SSE2, AVX2 (-mavx2), AVX-512F (-mavx512f).
+ * no SIMD), SSE2, AVX2 (-mavx2), AVX-512F (-mavx512f), NEON (little-endian ARM, a
+ * transcription of lanehash/src/arm.rs).
  * Verification values (SMHasher): 0x36B435A3 (64-bit), 0xB5F2A65D (128-bit).
  *
  * SPDX-License-Identifier: MIT OR Apache-2.0
@@ -23,7 +24,7 @@
 
 #include "lanehash_constants.h"
 
-#if !defined(LANEHASH_PORTABLE) && (defined(__x86_64__) || defined(_M_X64))
+#if !defined(LANEHASH_PORTABLE) && !defined(LANEHASH_NEON) && (defined(__x86_64__) || defined(_M_X64))
 #  if defined(__AVX512F__)
 #    define LANEHASH_AVX512 1
 #  elif defined(__AVX2__)
@@ -32,6 +33,24 @@
 #    define LANEHASH_SSE2 1
 #  endif
 #  include <immintrin.h>
+#elif !defined(LANEHASH_PORTABLE) && !defined(LANEHASH_NEON) \
+    && !(defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)) \
+    && (defined(__aarch64__) || defined(_M_ARM64) || defined(__ARM_NEON) || defined(__ARM_NEON__))
+#  define LANEHASH_NEON 1
+#endif
+/* LANEHASH_NEON may also be predefined, to build the NEON backend against an
+ * arm_neon.h emulation on another architecture (tests only). */
+#if defined(LANEHASH_NEON)
+#  if defined(_MSC_VER) && !defined(__clang__) && defined(_M_ARM64)
+#    include <arm64_neon.h>
+#  else
+#    include <arm_neon.h>
+#  endif
+/* AArch64 pairs two registers with uzp1/uzp2 and umlal/umlal2 (as arm.rs does);
+ * ARMv7, or LANEHASH_NEON_NARROW, narrows each register with xtn/shrn instead. */
+#  if !defined(LANEHASH_NEON_NARROW) && !(defined(__aarch64__) || defined(_M_ARM64) || defined(LANEHASH_NEON_PAIR))
+#    define LANEHASH_NEON_NARROW 1
+#  endif
 #endif
 
 #if defined(__GNUC__)
@@ -110,11 +129,6 @@ LANEHASH_INLINE void lanehash_put64(uint8_t *p, uint64_t v) {
     v = __builtin_bswap64(v);
 #endif
     memcpy(p, &v, 8);
-}
-/* the lane step: x = a ^ w; x + lo32(x) * hi32(x) */
-LANEHASH_INLINE uint64_t lanehash_step(uint64_t a, uint64_t w) {
-    uint64_t x = a ^ w;
-    return x + (uint64_t)(uint32_t)x * (x >> 32);
 }
 /* the secrets of one seed: returns ks (long path), sets ka and kb (short path) */
 LANEHASH_INLINE uint64_t lanehash_keys(uint64_t seed, uint64_t *ka, uint64_t *kb) {
@@ -200,7 +214,12 @@ LANEHASH_INLINE uint64_t lanehash_finish_lanes(const uint64_t m[8], uint64_t ks,
     return lanehash_fold(h ^ n, ks ^ LANEHASH_S[8]);
 }
 
-#if !defined(LANEHASH_SSE2) && !defined(LANEHASH_AVX2) && !defined(LANEHASH_AVX512)
+#if !defined(LANEHASH_SSE2) && !defined(LANEHASH_AVX2) && !defined(LANEHASH_AVX512) && !defined(LANEHASH_NEON)
+/* the lane step: x = a ^ w; x + lo32(x) * hi32(x) */
+LANEHASH_INLINE uint64_t lanehash_step(uint64_t a, uint64_t w) {
+    uint64_t x = a ^ w;
+    return x + (uint64_t)(uint32_t)x * (x >> 32);
+}
 /* scalar: no state array up to eight stripes, a 64-word state beyond */
 static uint64_t lanehash_long(const uint8_t *p, size_t n, uint64_t seed, uint64_t *hi) {
     uint64_t ks = lanehash_ks(seed), m = (uint64_t)(n - 1) / 64, mv[8], nn = (uint64_t)n;
@@ -238,6 +257,83 @@ static uint64_t lanehash_long(const uint8_t *p, size_t n, uint64_t seed, uint64_
     }
 }
 #endif
+
+#if defined(LANEHASH_NEON)
+/* NEON: two 128-bit registers per half stripe, the 64-word state in memory. */
+#  define LANEHASH_LD(p) vreinterpretq_u64_u8(vld1q_u8((const uint8_t *)(p)))
+
+/* x = a ^ w; x + lo32(x) * hi32(x), on a register pair */
+LANEHASH_INLINE void lanehash_step2(uint64x2_t *a0, uint64x2_t *a1, uint64x2_t w0, uint64x2_t w1) {
+    uint64x2_t x0 = veorq_u64(*a0, w0), x1 = veorq_u64(*a1, w1);
+#  if defined(LANEHASH_NEON_NARROW)
+    *a0 = vmlal_u32(x0, vmovn_u64(x0), vshrn_n_u64(x0, 32));
+    *a1 = vmlal_u32(x1, vmovn_u64(x1), vshrn_n_u64(x1, 32));
+#  else
+    uint32x4_t e = vuzp1q_u32(vreinterpretq_u32_u64(x0), vreinterpretq_u32_u64(x1));
+    uint32x4_t o = vuzp2q_u32(vreinterpretq_u32_u64(x0), vreinterpretq_u32_u64(x1));
+    *a0 = vmlal_u32(x0, vget_low_u32(e), vget_low_u32(o));
+    *a1 = vmlal_high_u32(x1, e, o);
+#  endif
+}
+/* one stripe at src (words XORed with nv) into the chain at ch */
+LANEHASH_INLINE void lanehash_stripe(uint64_t *ch, const uint8_t *src, uint64x2_t nv) {
+    unsigned h;
+    LANEHASH_UNROLL
+    for (h = 0; h < 2; h++) {
+        uint64x2_t a0 = vld1q_u64(ch + 4 * h), a1 = vld1q_u64(ch + 4 * h + 2);
+        lanehash_step2(&a0, &a1, veorq_u64(LANEHASH_LD(src + 32 * h), nv), veorq_u64(LANEHASH_LD(src + 32 * h + 16), nv));
+        vst1q_u64(ch + 4 * h, a0);
+        vst1q_u64(ch + 4 * h + 2, a1);
+    }
+}
+/* m < 8: chain c starts from CT, takes its stripe and its merge step, all in registers */
+LANEHASH_INLINE void lanehash_one(uint64x2_t mv[4], uint64_t c, const uint8_t *src, uint64x2_t nv, uint64x2_t ksv) {
+    unsigned h;
+    LANEHASH_UNROLL
+    for (h = 0; h < 2; h++) {
+        uint64x2_t a0 = vaddq_u64(vld1q_u64(LANEHASH_CT + 8 * c + 4 * h), ksv);
+        uint64x2_t a1 = vaddq_u64(vld1q_u64(LANEHASH_CT + 8 * c + 4 * h + 2), ksv);
+        lanehash_step2(&a0, &a1, veorq_u64(LANEHASH_LD(src + 32 * h), nv), veorq_u64(LANEHASH_LD(src + 32 * h + 16), nv));
+        lanehash_step2(&a0, &a1, vld1q_u64(LANEHASH_QT + 8 * c + 4 * h), vld1q_u64(LANEHASH_QT + 8 * c + 4 * h + 2));
+        mv[2 * h] = veorq_u64(mv[2 * h], a0);
+        mv[2 * h + 1] = veorq_u64(mv[2 * h + 1], a1);
+    }
+}
+static uint64_t lanehash_long(const uint8_t *p, size_t n, uint64_t seed, uint64_t *hi) {
+    uint64_t ks = lanehash_ks(seed), m = (uint64_t)(n - 1) / 64, nn = (uint64_t)n, out[8], s;
+    uint64x2_t ksv = vdupq_n_u64(ks), z = vdupq_n_u64(0), nv = vdupq_n_u64(nn), mv[4];
+    unsigned c, h, r;
+    mv[0] = mv[1] = mv[2] = mv[3] = z;
+    if (m < 8) {
+        for (s = 0; s < m; s++)
+            lanehash_one(mv, s, p + s * 64, z, ksv);
+        lanehash_one(mv, m, p + n - 64, nv, ksv);
+    } else {
+        uint64_t st[64];
+        for (r = 0; r < 32; r++)
+            vst1q_u64(st + 2 * r, vaddq_u64(vld1q_u64(LANEHASH_CT + 2 * r), ksv));
+        for (s = 0; s + 8 <= m; s += 8) {
+            LANEHASH_UNROLL
+            for (c = 0; c < 8; c++)
+                lanehash_stripe(st + 8 * c, p + (s + c) * 64, z);
+        }
+        for (; s < m; s++)
+            lanehash_stripe(st + 8 * (s & 7), p + s * 64, z);
+        lanehash_stripe(st + 8 * (m & 7), p + n - 64, nv);
+        for (c = 0; c < 8; c++) {
+            for (h = 0; h < 2; h++) {
+                uint64x2_t a0 = vld1q_u64(st + 8 * c + 4 * h), a1 = vld1q_u64(st + 8 * c + 4 * h + 2);
+                lanehash_step2(&a0, &a1, vld1q_u64(LANEHASH_QT + 8 * c + 4 * h), vld1q_u64(LANEHASH_QT + 8 * c + 4 * h + 2));
+                mv[2 * h] = veorq_u64(mv[2 * h], a0);
+                mv[2 * h + 1] = veorq_u64(mv[2 * h + 1], a1);
+            }
+        }
+    }
+    for (r = 0; r < 4; r++)
+        vst1q_u64(out + 2 * r, mv[r]);
+    return lanehash_finish_lanes(out, ks, nn, hi);
+}
+#endif /* NEON */
 
 #if defined(LANEHASH_SSE2) || defined(LANEHASH_AVX2) || defined(LANEHASH_AVX512)
 /* one register type per width; R registers per 64-byte stripe */
