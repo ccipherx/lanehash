@@ -1,8 +1,8 @@
 /* lanehash - fast non-cryptographic 64/128-bit hash, no AES needed (C port of the Rust
  * crate's default function). Inputs over 64 bytes: eight chains of NH-32 stripes;
  * shorter: 64x64->128 multiply-folds. Same bits on every backend: scalar, SSE2, AVX2
- * (-mavx2), AVX-512F (-mavx512f); LANEHASH_PORTABLE forces scalar, LANEHASH_NO_INT128
- * avoids unsigned __int128.
+ * (-mavx2), AVX-512F (-mavx512f), NEON (little-endian ARM); LANEHASH_PORTABLE forces
+ * scalar, LANEHASH_NO_INT128 avoids unsigned __int128.
  * Verification values (SMHasher): 0x36B435A3 (64-bit), 0xB5F2A65D (128-bit).
  *
  * SPDX-License-Identifier: MIT OR Apache-2.0

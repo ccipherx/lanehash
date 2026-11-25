@@ -25,14 +25,17 @@ Backends are chosen at compile time and all produce the same output:
 | `-march=native` on a CPU with AVX-512 | AVX-512F | VAES, two lanes per ymm |
 | `-mavx2` (+ `-mvaes -maes`) | AVX2 | VAES, two lanes per ymm |
 | `-maes` / none | SSE2 | AES-NI / T-table software AES |
+| AArch64, or ARMv7 with NEON (little-endian) | NEON | T-table software AES |
 | `-DLANEHASH_PORTABLE` / `-DLANEHASH_AES_PORTABLE` | scalar | T-table software AES |
 | `-DLANEHASH_NO_INT128` / `-DLANEHASH_AES_NO_INT128` | 32-bit multiplies for the folds | same |
 
 Verification values (SMHasher): lanehash 0x36B435A3 (64-bit), 0xB5F2A65D (128-bit);
 lanehash_aes 0x9FF60BEF (64-bit), 0x1A79672D (128-bit).
 
-`make test` builds six variants (scalar, scalar without `__int128`, SSE2 + AES-NI, AVX2 +
-VAES, AVX-512 + VAES, and SSE2 + AES-NI at `-O0` under ASan and UBSan) and compares each
+`make test` builds six variants on x86-64 (scalar, scalar without `__int128`, SSE2 + AES-NI,
+AVX2 + VAES, AVX-512 + VAES, and SSE2 + AES-NI at `-O0` under ASan and UBSan) or five on
+AArch64 (scalar, scalar without `__int128`, NEON, NEON in its ARMv7 form with
+`-DLANEHASH_NEON_NARROW`, and NEON at `-O0` under ASan and UBSan) and compares each
 with the Rust crate through `../lanehash-ffi` on 12 678 (length, seed, alignment) cases per
 function. `make speed` prints cycles per hash of the C port next to the Rust crate.
 
